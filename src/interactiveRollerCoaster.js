@@ -99,15 +99,18 @@ const getDirection = (c) => {
 const getCornerDirection = (c) => {
   let prevSquare = getPrevSquare();
   let curSquare = getFullCurrentSquare(c);
-
-  if (curSquare.d === 1 && prevSquare.d === 2) return { d: 11 };
-  else if (curSquare.d === 1 && prevSquare.d === 4) return { d: 12 };
-  else if (curSquare.d === 2 && prevSquare.d === 1) return { d: 21 };
-  else if (curSquare.d === 2 && prevSquare.d === 3) return { d: 22 };
-  else if (curSquare.d === 3 && prevSquare.d === 2) return { d: 31 };
-  else if (curSquare.d === 3 && prevSquare.d === 4) return { d: 32 };
-  else if (curSquare.d === 4 && prevSquare.d === 1) return { d: 41 };
-  else if (curSquare.d === 4 && prevSquare.d === 3) return { d: 42 };
+  // 1 = trackRight
+  // 2 = trackUp
+  // 3 = trackLeft
+  // 4 = trackDown
+  if (curSquare.d === 2 && prevSquare.d === 1) return { d: 11 };
+  else if (curSquare.d === 4 && prevSquare.d === 1) return { d: 12 };
+  else if (curSquare.d === 1 && prevSquare.d === 2) return { d: 21 };
+  else if (curSquare.d === 3 && prevSquare.d === 2) return { d: 22 };
+  else if (curSquare.d === 2 && prevSquare.d === 3) return { d: 31 };
+  else if (curSquare.d === 4 && prevSquare.d === 3) return { d: 32 };
+  else if (curSquare.d === 1 && prevSquare.d === 4) return { d: 41 };
+  else if (curSquare.d === 3 && prevSquare.d === 4) return { d: 42 };
   else return { d: 1 };
 };
 
@@ -123,7 +126,7 @@ const checkTrack = (c) => {
   )
     return;
 
-  if (corner.d >= 10) gridArray[gridArray.length - 1][2] = direction.d;
+  if (corner.d >= 10) gridArray[gridArray.length - 1][2] = corner.d;
   gridArray.push([currentSquare.x, currentSquare.y, direction.d]);
 
   // let corner = checkCorner(c);
@@ -148,13 +151,14 @@ const drawTrack = (c) => {
     const dir = gridArray[i][2];
 
     if (dir >= 11) {
-      if (dir === 11 || 31) c.drawingContext.drawImage(corner0, x, y, s, s);
-      else if (dir === 12 || 32)
-        c.drawingContext.drawImage(corner90, x, y, s, s);
-      else if (dir === 21 || 41)
-        c.drawingContext.drawImage(corner180, x, y, s, s);
-      else if (dir === 22 || 42)
-        c.drawingContext.drawImage(corner270, x, y, s, s);
+      if (dir === 11) c.drawingContext.drawImage(corner270, x, y, s, s);
+      else if (dir === 12) c.drawingContext.drawImage(corner90, x, y, s, s);
+      else if (dir === 21) c.drawingContext.drawImage(corner0, x, y, s, s);
+      else if (dir === 22) c.drawingContext.drawImage(corner90, x, y, s, s);
+      else if (dir === 31) c.drawingContext.drawImage(corner180, x, y, s, s);
+      else if (dir === 32) c.drawingContext.drawImage(corner0, x, y, s, s);
+      else if (dir === 41) c.drawingContext.drawImage(corner180, x, y, s, s);
+      else if (dir === 42) c.drawingContext.drawImage(corner270, x, y, s, s);
     } else {
       if (dir === 1) c.drawingContext.drawImage(trackRight, x, y, s, s);
       else if (dir === 2) c.drawingContext.drawImage(trackUp, x, y, s, s);
