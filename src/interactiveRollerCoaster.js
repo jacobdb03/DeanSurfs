@@ -1,19 +1,22 @@
 import "./style.css";
 import p5 from "p5";
-import horizontalTrackSrc from "./assets/horizontalTrackPiece.png";
-import cornerTrackSrc from "./assets/cornerTrackPiece.png";
+import trackRightSrc from "./assets/trackRight.png";
+import trackDownSrc from "./assets/trackDown.png";
+import trackLeftSrc from "./assets/trackLeft.png";
+import trackUpSrc from "./assets/trackUp.png";
 
-let horizontalTrackImg;
-let cornerTrackImg;
+let trackRight, trackDown, trackLeft, trackUp;
 
-const loadImage = (src, callback) => {
+const loadImg = (src, callback) => {
   const img = new Image();
   img.src = src;
   img.onload = () => callback(img);
 };
 
-loadImage(horizontalTrackSrc, (img) => (horizontalTrackImg = img));
-loadImage(cornerTrackSrc, (img) => (cornerTrackImg = img));
+loadImg(trackRightSrc, (img) => (trackRight = img));
+loadImg(trackDownSrc, (img) => (trackDown = img));
+loadImg(trackLeftSrc, (img) => (trackLeft = img));
+loadImg(trackUpSrc, (img) => (trackUp = img));
 
 let bgCol = "#1d1d1d";
 let font;
@@ -22,11 +25,23 @@ let xGrid;
 let yGrid;
 let gridArray = [];
 let gridScale = 100;
-let direction = 0;
-
-let currentSquare;
 
 let showSetup = true;
+
+const tutorial = (c) => {
+  if (showSetup) {
+    c.fill(255);
+    c.strokeWeight(0);
+    if (font) c.textFont(font);
+    c.textAlign(c.CENTER, c.CENTER);
+    c.textSize(42);
+    c.text(
+      "click + hold anywhere to ride",
+      window.innerWidth / 2,
+      window.innerHeight / 2,
+    );
+  }
+};
 
 const drawGrid = (c) => {
   c.strokeWeight(1);
@@ -50,55 +65,84 @@ const getCurrentSquare = (c) => {
   return { x: x, y: y };
 };
 
-const tutorial = (c) => {
-  if (showSetup) {
-    c.fill(255);
-    c.strokeWeight(0);
-    if (font) c.textFont(font);
-    c.textAlign(c.CENTER, c.CENTER);
-    c.textSize(42);
-    c.text(
-      "click + hold anywhere to ride",
-      window.innerWidth / 2,
-      window.innerHeight / 2,
-    );
+const getPrevSquare = () => {
+  if (gridArray.length <= 1) {
+    return null;
+  } else {
+    const prev = gridArray[gridArray.length - 1];
+    return { x: prev[0], y: prev[1] };
+  }
+};
+
+const checkDirection = (c) => {
+  let prevSquare = getPrevSquare();
+  let currentSquare = getCurrentSquare(c);
+
+  if (!prevSquare) {
+    return { d: 0 };
+  } else {
+    // Right Up Left Down
+    if (prevSquare.x < currentSquare.x) {
+      return { d: 0 };
+    } else if (prevSquare.y > currentSquare.y) {
+      return { d: 1 };
+    } else if (prevSquare.x > currentSquare.x) {
+      return { d: 2 };
+    } else if (prevSquare.y < currentSquare.y) {
+      return { d: 3 };
+    }
   }
 };
 
 const checkTrack = (c) => {
-  currentSquare = getCurrentSquare(c);
+  let currentSquare = getCurrentSquare(c);
+  let direction = checkDirection(c);
 
-  gridArray.push([currentSquare.x, currentSquare.y]);
-};
-
-const checkDirection = (c) => {
-  c.stroke("white");
-  c.strokeWeight(10);
-  if (direction == 0) {
-    c.line(
-      getCurrentSquare(c).x,
-      getCurrentSquare(c).y,
-      getCurrentSquare(c).x + 100,
-      getCurrentSquare(c).y,
-    );
+  // If not in array already, and need to check if there is a direction or not
+  if (direction && direction.d !== undefined) {
+    gridArray.push([currentSquare.x, currentSquare.y, direction.d]);
   }
 };
 
 const drawTrack = (c) => {
-  c.fill("#2560e0");
-  c.noStroke();
-
-  if (!horizontalTrackImg) return;
+  if (!trackUp) return;
 
   for (let i = 0; i < gridArray.length; i++) {
-    // c.rect(gridArray[i][0], gridArray[i][1], gridScale, gridScale);
-    c.drawingContext.drawImage(
-      horizontalTrackImg,
-      gridArray[i][0],
-      gridArray[i][1],
-      gridScale,
-      gridScale,
-    );
+    // Right Up Left Down
+
+    if (gridArray[i][2] === 0) {
+      c.drawingContext.drawImage(
+        trackRight,
+        gridArray[i][0],
+        gridArray[i][1],
+        gridScale,
+        gridScale,
+      );
+    } else if (gridArray[i][2] == 1) {
+      c.drawingContext.drawImage(
+        trackUp,
+        gridArray[i][0],
+        gridArray[i][1],
+        gridScale,
+        gridScale,
+      );
+    } else if (gridArray[i][2] == 2) {
+      c.drawingContext.drawImage(
+        trackLeft,
+        gridArray[i][0],
+        gridArray[i][1],
+        gridScale,
+        gridScale,
+      );
+    } else if (gridArray[i][2] == 3) {
+      c.drawingContext.drawImage(
+        trackDown,
+        gridArray[i][0],
+        gridArray[i][1],
+        gridScale,
+        gridScale,
+      );
+    }
   }
 };
 
@@ -114,14 +158,12 @@ const coaster = (c) => {
     tutorial(c);
 
     drawTrack(c);
-    //Need a draw direction
   };
 
   c.mouseDragged = () => {
     showSetup = false;
 
     checkTrack(c);
-    checkDirection(c);
   };
 
   c.mouseReleased = () => {
