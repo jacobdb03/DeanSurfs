@@ -1,22 +1,7 @@
 import "./style.css";
 import p5 from "p5";
-import trackRightSrc from "./assets/trackRight.png";
-import trackDownSrc from "./assets/trackDown.png";
-import trackLeftSrc from "./assets/trackLeft.png";
-import trackUpSrc from "./assets/trackUp.png";
 
-let trackRight, trackDown, trackLeft, trackUp;
-
-const loadImg = (src, callback) => {
-  const img = new Image();
-  img.src = src;
-  img.onload = () => callback(img);
-};
-
-loadImg(trackRightSrc, (img) => (trackRight = img));
-loadImg(trackDownSrc, (img) => (trackDown = img));
-loadImg(trackLeftSrc, (img) => (trackLeft = img));
-loadImg(trackUpSrc, (img) => (trackUp = img));
+import { loadAssets } from "./assets.js";
 
 let bgCol = "#1d1d1d";
 let font;
@@ -24,7 +9,7 @@ let font;
 let xGrid;
 let yGrid;
 let gridArray = [];
-let gridScale = 100;
+let gridScale = 10;
 
 let showSetup = true;
 
@@ -70,7 +55,7 @@ const getPrevSquare = () => {
     return null;
   } else {
     const prev = gridArray[gridArray.length - 1];
-    return { x: prev[0], y: prev[1] };
+    return { x: prev[0], y: prev[1], d: prev[2] };
   }
 };
 
@@ -94,6 +79,30 @@ const checkDirection = (c) => {
   }
 };
 
+const checkCorner = (c) => {
+  let prevSquare = getPrevSquare();
+  let checkDirection = checkDirection(c);
+
+  if (!prevSquare && checkDirection.d == prevSquare.d) {
+    return { d: 0 };
+  } else {
+    // Right Up Left Down
+    if (checkDirection.d == prevSquare.d) {
+      console.log("0")
+      return { dc: 1 };
+    } else if (checkDirection.d == prevSquare.d) {
+      console.log("90")
+      return { dc: 2 };
+    } else if (checkDirection.d == prevSquare.d) {
+      console.log("180")
+      return { dc: 3 };
+    } else if (checkDirection.d == prevSquare.d) {
+      console.log("270")
+      return { dc: 4 };
+    }
+  }
+};
+
 const checkTrack = (c) => {
   let currentSquare = getCurrentSquare(c);
   let direction = checkDirection(c);
@@ -109,40 +118,44 @@ const drawTrack = (c) => {
 
   for (let i = 0; i < gridArray.length; i++) {
     // Right Up Left Down
-
-    if (gridArray[i][2] === 0) {
-      c.drawingContext.drawImage(
-        trackRight,
-        gridArray[i][0],
-        gridArray[i][1],
-        gridScale,
-        gridScale,
-      );
-    } else if (gridArray[i][2] == 1) {
-      c.drawingContext.drawImage(
-        trackUp,
-        gridArray[i][0],
-        gridArray[i][1],
-        gridScale,
-        gridScale,
-      );
-    } else if (gridArray[i][2] == 2) {
-      c.drawingContext.drawImage(
-        trackLeft,
-        gridArray[i][0],
-        gridArray[i][1],
-        gridScale,
-        gridScale,
-      );
-    } else if (gridArray[i][2] == 3) {
-      c.drawingContext.drawImage(
-        trackDown,
-        gridArray[i][0],
-        gridArray[i][1],
-        gridScale,
-        gridScale,
-      );
+    if (dc != 0) {
+      console.log("do not draw a corner");
+    } else if {
+      if (gridArray[i][2] === 0) {
+        c.drawingContext.drawImage(
+          trackRight,
+          gridArray[i][0],
+          gridArray[i][1],
+          gridScale,
+          gridScale,
+        );
+      } else if (gridArray[i][2] == 1) {
+        c.drawingContext.drawImage(
+          trackUp,
+          gridArray[i][0],
+          gridArray[i][1],
+          gridScale,
+          gridScale,
+        );
+      } else if (gridArray[i][2] == 2) {
+        c.drawingContext.drawImage(
+          trackLeft,
+          gridArray[i][0],
+          gridArray[i][1],
+          gridScale,
+          gridScale,
+        );
+      } else if (gridArray[i][2] == 3) {
+        c.drawingContext.drawImage(
+          trackDown,
+          gridArray[i][0],
+          gridArray[i][1],
+          gridScale,
+          gridScale,
+        );
+      }
     }
+
   }
 };
 
