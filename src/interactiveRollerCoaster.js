@@ -3,13 +3,33 @@ import p5 from "p5";
 
 import { loadAssets } from "./assets.js";
 
+let trackRight,
+  trackDown,
+  trackLeft,
+  trackUp,
+  corner0,
+  corner90,
+  corner180,
+  corner270;
+loadAssets().then((assets) => {
+  trackRight = assets.trackRight;
+  trackDown = assets.trackDown;
+  trackLeft = assets.trackLeft;
+  trackUp = assets.trackUp;
+  corner0 = assets.corner0;
+  corner90 = assets.corner90;
+  corner180 = assets.corner180;
+  corner270 = assets.corner270;
+  new p5(coaster);
+});
+
 let bgCol = "#1d1d1d";
 let font;
 
 let xGrid;
 let yGrid;
 let gridArray = [];
-let gridScale = 10;
+let gridScale = 40;
 
 let showSetup = true;
 
@@ -19,7 +39,7 @@ const tutorial = (c) => {
     c.strokeWeight(0);
     if (font) c.textFont(font);
     c.textAlign(c.CENTER, c.CENTER);
-    c.textSize(42);
+    c.textSize(18);
     c.text(
       "click + hold anywhere to ride",
       window.innerWidth / 2,
@@ -50,112 +70,97 @@ const getCurrentSquare = (c) => {
   return { x: x, y: y };
 };
 
+const getFullCurrentSquare = (c) => {
+  let x = getCurrentSquare(c).x;
+  let y = getCurrentSquare(c).y;
+  let d = getDirection(c).d;
+
+  return { x: x, y: y, d: d };
+};
+
 const getPrevSquare = () => {
-  if (gridArray.length <= 1) {
-    return null;
-  } else {
-    const prev = gridArray[gridArray.length - 1];
-    return { x: prev[0], y: prev[1], d: prev[2] };
-  }
+  if (gridArray <= 1) return { x: 0, y: 0, d: 0 };
+
+  const prevSquare = gridArray[gridArray.length - 1];
+  return { x: prevSquare[0], y: prevSquare[1], d: prevSquare[2] };
 };
 
-const checkDirection = (c) => {
+const getDirection = (c) => {
   let prevSquare = getPrevSquare();
-  let currentSquare = getCurrentSquare(c);
+  let curSquare = getCurrentSquare(c);
 
-  if (!prevSquare) {
-    return { d: 0 };
-  } else {
-    // Right Up Left Down
-    if (prevSquare.x < currentSquare.x) {
-      return { d: 0 };
-    } else if (prevSquare.y > currentSquare.y) {
-      return { d: 1 };
-    } else if (prevSquare.x > currentSquare.x) {
-      return { d: 2 };
-    } else if (prevSquare.y < currentSquare.y) {
-      return { d: 3 };
-    }
-  }
+  if (prevSquare.x < curSquare.x) return { d: 1 };
+  else if (prevSquare.y > curSquare.y) return { d: 2 };
+  else if (prevSquare.x > curSquare.x) return { d: 3 };
+  else if (prevSquare.y < curSquare.y) return { d: 4 };
+  else return { d: 1 };
 };
 
-const checkCorner = (c) => {
+const getCornerDirection = (c) => {
   let prevSquare = getPrevSquare();
-  let checkDirection = checkDirection(c);
+  let curSquare = getFullCurrentSquare(c);
 
-  if (!prevSquare && checkDirection.d == prevSquare.d) {
-    return { d: 0 };
-  } else {
-    // Right Up Left Down
-    if (checkDirection.d == prevSquare.d) {
-      console.log("0")
-      return { dc: 1 };
-    } else if (checkDirection.d == prevSquare.d) {
-      console.log("90")
-      return { dc: 2 };
-    } else if (checkDirection.d == prevSquare.d) {
-      console.log("180")
-      return { dc: 3 };
-    } else if (checkDirection.d == prevSquare.d) {
-      console.log("270")
-      return { dc: 4 };
-    }
-  }
+  if (curSquare.d === 1 && prevSquare.d === 2) return { d: 11 };
+  else if (curSquare.d === 1 && prevSquare.d === 4) return { d: 12 };
+  else if (curSquare.d === 2 && prevSquare.d === 1) return { d: 21 };
+  else if (curSquare.d === 2 && prevSquare.d === 3) return { d: 22 };
+  else if (curSquare.d === 3 && prevSquare.d === 2) return { d: 31 };
+  else if (curSquare.d === 3 && prevSquare.d === 4) return { d: 32 };
+  else if (curSquare.d === 4 && prevSquare.d === 1) return { d: 41 };
+  else if (curSquare.d === 4 && prevSquare.d === 3) return { d: 42 };
+  else return { d: 1 };
 };
 
 const checkTrack = (c) => {
   let currentSquare = getCurrentSquare(c);
-  let direction = checkDirection(c);
+  let previousSquare = getPrevSquare();
+  let direction = getFullCurrentSquare(c);
+  let corner = getCornerDirection(c);
 
-  // If not in array already, and need to check if there is a direction or not
-  if (direction && direction.d !== undefined) {
-    gridArray.push([currentSquare.x, currentSquare.y, direction.d]);
-  }
+  if (
+    currentSquare.x === previousSquare.x &&
+    currentSquare.y === previousSquare.y
+  )
+    return;
+
+  if (corner.d >= 10) gridArray[gridArray.length - 1][2] = direction.d;
+  gridArray.push([currentSquare.x, currentSquare.y, direction.d]);
+
+  // let corner = checkCorner(c);
+
+  // console.log(currentSquare, previousSquare);
+  // console.log(getDirection(c));
+
+  // console.log(gridArray);
+
+  // if (gridArray.length > 0 && direction.d >= 11) {
+  //   gridArray[gridArray.length - 1][2] = direction.d;
+  // } else
 };
 
 const drawTrack = (c) => {
   if (!trackUp) return;
 
   for (let i = 0; i < gridArray.length; i++) {
-    // Right Up Left Down
-    if (dc != 0) {
-      console.log("do not draw a corner");
-    } else if {
-      if (gridArray[i][2] === 0) {
-        c.drawingContext.drawImage(
-          trackRight,
-          gridArray[i][0],
-          gridArray[i][1],
-          gridScale,
-          gridScale,
-        );
-      } else if (gridArray[i][2] == 1) {
-        c.drawingContext.drawImage(
-          trackUp,
-          gridArray[i][0],
-          gridArray[i][1],
-          gridScale,
-          gridScale,
-        );
-      } else if (gridArray[i][2] == 2) {
-        c.drawingContext.drawImage(
-          trackLeft,
-          gridArray[i][0],
-          gridArray[i][1],
-          gridScale,
-          gridScale,
-        );
-      } else if (gridArray[i][2] == 3) {
-        c.drawingContext.drawImage(
-          trackDown,
-          gridArray[i][0],
-          gridArray[i][1],
-          gridScale,
-          gridScale,
-        );
-      }
-    }
+    const x = gridArray[i][0];
+    const y = gridArray[i][1];
+    const s = gridScale;
+    const dir = gridArray[i][2];
 
+    if (dir >= 11) {
+      if (dir === 11 || 31) c.drawingContext.drawImage(corner0, x, y, s, s);
+      else if (dir === 12 || 32)
+        c.drawingContext.drawImage(corner90, x, y, s, s);
+      else if (dir === 21 || 41)
+        c.drawingContext.drawImage(corner180, x, y, s, s);
+      else if (dir === 22 || 42)
+        c.drawingContext.drawImage(corner270, x, y, s, s);
+    } else {
+      if (dir === 1) c.drawingContext.drawImage(trackRight, x, y, s, s);
+      else if (dir === 2) c.drawingContext.drawImage(trackUp, x, y, s, s);
+      else if (dir === 3) c.drawingContext.drawImage(trackLeft, x, y, s, s);
+      else if (dir === 4) c.drawingContext.drawImage(trackDown, x, y, s, s);
+    }
   }
 };
 
@@ -166,7 +171,7 @@ const coaster = (c) => {
 
   c.draw = () => {
     c.background(bgCol);
-    // drawGrid(c);
+    drawGrid(c);
 
     tutorial(c);
 
@@ -188,8 +193,6 @@ const coaster = (c) => {
   };
 };
 
-new p5(coaster);
-
 /*
 LOGIC FOR ROLLER COASTER:
 
@@ -202,16 +205,4 @@ LOGIC FOR ROLLER COASTER:
     Also: for loop de loops, specifically designed shapes in the grid
 
   On mouse release > animate the roller coaster character going along the drawn path
-
-
-
-  // If the mouse moves and its a new square: do the check
-
-  //   If it doesnt already exist in the array: add it
-
-  //   In gridArray.some look for [currentPosX and current pos y] (as an array) compared to the other arrays within grid array
-
-  //        If found, dont add it to the array, if it is
-
-  //        Draw whatever is in the array
 */
