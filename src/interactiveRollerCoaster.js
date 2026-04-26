@@ -3,6 +3,8 @@ import p5 from "p5";
 
 import { loadAssets } from "./assets.js";
 
+/* ———— Image and p5 loaded Checker ———— */
+
 let trackRight,
   trackDown,
   trackLeft,
@@ -23,17 +25,20 @@ loadAssets().then((assets) => {
   new p5(coaster);
 });
 
-let bgCol = "#1d1d1d";
-let font;
+/* ———— Variable assets ———— */
 
-let xGrid;
-let yGrid;
+let bgCol = "#1d1d1d";
 let gridArray = [];
-let gridScale = 40;
+let gridScale = 10;
 
 let showSetup = true;
+let drawGridControl = false;
 
-const tutorial = (c) => {
+/* ———— Other functions ———— */
+
+//    Sets up the text that explains what to do before you start
+function tutorial(c) {
+  let font;
   if (showSetup) {
     c.fill(255);
     c.strokeWeight(0);
@@ -46,9 +51,15 @@ const tutorial = (c) => {
       window.innerHeight / 2,
     );
   }
-};
+}
 
-const drawGrid = (c) => {
+//    Creates a grid thats helpful in development
+function drawGrid(c) {
+  if (!drawGridControl) return;
+
+  let xGrid;
+  let yGrid;
+
   c.strokeWeight(1);
   c.stroke(100);
   c.noFill();
@@ -58,8 +69,10 @@ const drawGrid = (c) => {
       c.rect(xGrid, yGrid, gridScale, gridScale);
     }
   }
-};
+}
 
+/* ———— Define custom track variables ———— */
+//    Returns the x and y of the current box the mouse is in
 const getCurrentSquare = (c) => {
   let xSquare = Math.floor(c.mouseX / gridScale);
   let ySquare = Math.floor(c.mouseY / gridScale);
@@ -70,22 +83,16 @@ const getCurrentSquare = (c) => {
   return { x: x, y: y };
 };
 
-const getFullCurrentSquare = (c) => {
-  let x = getCurrentSquare(c).x;
-  let y = getCurrentSquare(c).y;
-  let d = getDirection(c).d;
-
-  return { x: x, y: y, d: d };
-};
-
+//    Returns the x, y and direction[d] of the square immediately before the current one
 const getPrevSquare = () => {
-  if (gridArray <= 1) return { x: 0, y: 0, d: 0 };
+  if (gridArray.length <= 1) return { x: 0, y: 0, d: 0 };
 
   const prevSquare = gridArray[gridArray.length - 1];
   return { x: prevSquare[0], y: prevSquare[1], d: prevSquare[2] };
 };
 
-const getDirection = (c) => {
+//    Returns the direction[d] of the current box compared to previous box   // 1 = trackRight // 2 = trackUp // 3 = trackLeft // 4 = trackDown
+const getCurrentDirection = (c) => {
   let prevSquare = getPrevSquare();
   let curSquare = getCurrentSquare(c);
 
@@ -96,29 +103,101 @@ const getDirection = (c) => {
   else return { d: 1 };
 };
 
-const getCornerDirection = (c) => {
-  let prevSquare = getPrevSquare();
-  let curSquare = getFullCurrentSquare(c);
-  // 1 = trackRight
-  // 2 = trackUp
-  // 3 = trackLeft
-  // 4 = trackDown
-  if (curSquare.d === 2 && prevSquare.d === 1) return { d: 11 };
-  else if (curSquare.d === 4 && prevSquare.d === 1) return { d: 12 };
-  else if (curSquare.d === 1 && prevSquare.d === 2) return { d: 21 };
-  else if (curSquare.d === 3 && prevSquare.d === 2) return { d: 22 };
-  else if (curSquare.d === 2 && prevSquare.d === 3) return { d: 31 };
-  else if (curSquare.d === 4 && prevSquare.d === 3) return { d: 32 };
-  else if (curSquare.d === 1 && prevSquare.d === 4) return { d: 41 };
-  else if (curSquare.d === 3 && prevSquare.d === 4) return { d: 42 };
-  else return { d: 1 };
-};
+/* ———— Variable track functions ———— */
+//    Checks whether the previous tile needs to be a corner tile, by comparing the current direciton to the previous tiles direction
+function getCorner(currDir) {
+  let cornerDir = 0;
 
-const checkTrack = (c) => {
+  if (gridArray.length <= 1) return;
+  let prevDir = gridArray[gridArray.length - 1][2];
+
+  if (currDir === prevDir || prevDir === 0) return;
+
+  if (currDir === 2 && prevDir === 1) cornerDir = 11;
+  else if (currDir === 4 && prevDir === 1) cornerDir = 12;
+  else if (currDir === 1 && prevDir === 2) cornerDir = 21;
+  else if (currDir === 3 && prevDir === 2) cornerDir = 22;
+  else if (currDir === 2 && prevDir === 3) cornerDir = 31;
+  else if (currDir === 4 && prevDir === 3) cornerDir = 32;
+  else if (currDir === 1 && prevDir === 4) cornerDir = 41;
+  else if (currDir === 3 && prevDir === 4) cornerDir = 42;
+
+  if (cornerDir >= 11 && gridArray.length > 0) {
+    // Overwrite the direction of the PREVIOUS tile with the corner ID
+    gridArray[gridArray.length - 1][2] = cornerDir;
+  }
+
+  return cornerDir;
+}
+
+//    Checks if there is a gap between the previous tile and the current tile, and connects them if so.
+function connectTrack(prevSquare, currSquare) {
+  // if (gridArray.length <= 1) return;
+  if (prevSquare.x === currSquare.x && prevSquare.y === currSquare.y) return;
+
+  let diffX = currSquare.x - prevSquare.x;
+  let diffY = currSquare.y - prevSquare.y;
+
+  if (Math.abs(diffX) > gridScale || Math.abs(diffY) > gridScale) {
+    let nextX = prevSquare.x;
+    let nextY = prevSquare.y;
+    let nextDir = 0;
+
+    if (Math.abs(diffX) > 0) {
+      if (diffX > 0) {
+        nextX += gridScale;
+        nextDir = 1;
+      } else {
+        nextX -= gridScale;
+        nextDir = 3;
+      }
+    }
+    // Then move Y
+    else if (Math.abs(diffY) > 0) {
+      if (diffY > 0) {
+        nextY += gridScale;
+        nextDir = 4;
+      } else {
+        nextY -= gridScale;
+        nextDir = 2;
+      }
+    }
+
+    getCorner(nextDir);
+    gridArray.push([nextX, nextY, nextDir]);
+    connectTrack({ x: nextX, y: nextY, d: nextDir }, currSquare);
+  }
+}
+
+// Check if there is a gap between the previous and current square
+//    Check if there is a bigger gap between the y or the x
+//        If the x gap is bigger:
+//            Add the gridscale to the previous box on the x axis
+//            Do a direction check
+//            Do a corner check
+//            Push it the new element into the stack
+//        else if the y gap is bigger:
+//            Add the gridscale to the previous box on the y axis
+//            Do a direction check
+//            Do a corner check
+//            Push it the new element into the stack
+//        else there is no gap
+//            escape
+//    else there is no gap
+//        escape
+//  else there is no gap
+//      escape
+// else the gap between the previous and current square isnt connected, go again
+//    Call this dunction recursively
+
+/* ———— The track functions ———— */
+//    Completes the checks to make sure a piece of track can be drawn and adds it to the stack.
+function checkTrack(c) {
+  // Set up variables
   let currentSquare = getCurrentSquare(c);
+  let direction = getCurrentDirection(c);
+
   let previousSquare = getPrevSquare();
-  let direction = getFullCurrentSquare(c);
-  let corner = getCornerDirection(c);
 
   if (
     currentSquare.x === previousSquare.x &&
@@ -126,22 +205,31 @@ const checkTrack = (c) => {
   )
     return;
 
-  if (corner.d >= 10) gridArray[gridArray.length - 1][2] = corner.d;
-  gridArray.push([currentSquare.x, currentSquare.y, direction.d]);
+  // If the array is empty, just place the first piece and STOP.
+  if (gridArray.length <= 1) {
+    gridArray.push([currentSquare.x, currentSquare.y, 1]);
+    return;
+  }
 
-  // let corner = checkCorner(c);
+  // Check for movement to new square: break if not
+  if (
+    currentSquare.x === previousSquare.x &&
+    currentSquare.y === previousSquare.y
+  )
+    return;
 
-  // console.log(currentSquare, previousSquare);
-  // console.log(getDirection(c));
+  // Check for illegal movements immediately backwards: break if so
+  if (previousSquare.d === 1 && direction.d === 3) return;
+  else if (previousSquare.d === 3 && direction.d === 1) return;
+  else if (previousSquare.d === 2 && direction.d === 4) return;
+  else if (previousSquare.d === 4 && direction.d === 2) return;
 
-  // console.log(gridArray);
+  // function that connects track together from fast mouse movement skipping boxes
+  connectTrack(previousSquare, currentSquare);
+}
 
-  // if (gridArray.length > 0 && direction.d >= 11) {
-  //   gridArray[gridArray.length - 1][2] = direction.d;
-  // } else
-};
-
-const drawTrack = (c) => {
+//    Draws the track from the stack, correct to the direction/corner.
+function drawTrack(c) {
   if (!trackUp) return;
 
   for (let i = 0; i < gridArray.length; i++) {
@@ -166,7 +254,25 @@ const drawTrack = (c) => {
       else if (dir === 4) c.drawingContext.drawImage(trackDown, x, y, s, s);
     }
   }
-};
+}
+
+/* ———— Visual additions ———— */
+//    Connects the drawn track to the bottom of the page.
+function addSupports() {
+  return;
+}
+
+//    Draws the cart to animate along the track
+function playAnimation() {
+  return;
+}
+
+//    Checks if there are any patterns in the shape of the coaster to replace them blocks with smoother curves/custom track shapes
+function extraStyleChecks() {
+  return;
+}
+
+/* ———— The p5 Logic ———— */
 
 const coaster = (c) => {
   c.setup = () => {
