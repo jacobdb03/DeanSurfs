@@ -29,7 +29,7 @@ loadAssets().then((assets) => {
 
 let bgCol = "#1d1d1d";
 let gridArray = [];
-let gridScale = 10;
+let gridScale = 50;
 
 let showSetup = true;
 let drawGridControl = false;
@@ -143,7 +143,7 @@ function connectTrack(prevSquare, currSquare) {
     let nextY = prevSquare.y;
     let nextDir = 0;
 
-    if (Math.abs(diffX) > 0) {
+    if (diffX !== 0) {
       if (diffX > 0) {
         nextX += gridScale;
         nextDir = 1;
@@ -153,7 +153,7 @@ function connectTrack(prevSquare, currSquare) {
       }
     }
     // Then move Y
-    else if (Math.abs(diffY) > 0) {
+    else if (diffY !== 0) {
       if (diffY > 0) {
         nextY += gridScale;
         nextDir = 4;
@@ -164,31 +164,10 @@ function connectTrack(prevSquare, currSquare) {
     }
 
     getCorner(nextDir);
-    gridArray.push([nextX, nextY, nextDir]);
+    addToTrack(nextX, nextY, nextDir);
     connectTrack({ x: nextX, y: nextY, d: nextDir }, currSquare);
   }
 }
-
-// Check if there is a gap between the previous and current square
-//    Check if there is a bigger gap between the y or the x
-//        If the x gap is bigger:
-//            Add the gridscale to the previous box on the x axis
-//            Do a direction check
-//            Do a corner check
-//            Push it the new element into the stack
-//        else if the y gap is bigger:
-//            Add the gridscale to the previous box on the y axis
-//            Do a direction check
-//            Do a corner check
-//            Push it the new element into the stack
-//        else there is no gap
-//            escape
-//    else there is no gap
-//        escape
-//  else there is no gap
-//      escape
-// else the gap between the previous and current square isnt connected, go again
-//    Call this dunction recursively
 
 /* ———— The track functions ———— */
 //    Completes the checks to make sure a piece of track can be drawn and adds it to the stack.
@@ -199,6 +178,7 @@ function checkTrack(c) {
 
   let previousSquare = getPrevSquare();
 
+  // Check for movement to new square: break if not
   if (
     currentSquare.x === previousSquare.x &&
     currentSquare.y === previousSquare.y
@@ -211,13 +191,6 @@ function checkTrack(c) {
     return;
   }
 
-  // Check for movement to new square: break if not
-  if (
-    currentSquare.x === previousSquare.x &&
-    currentSquare.y === previousSquare.y
-  )
-    return;
-
   // Check for illegal movements immediately backwards: break if so
   if (previousSquare.d === 1 && direction.d === 3) return;
   else if (previousSquare.d === 3 && direction.d === 1) return;
@@ -226,6 +199,11 @@ function checkTrack(c) {
 
   // function that connects track together from fast mouse movement skipping boxes
   connectTrack(previousSquare, currentSquare);
+}
+
+function addToTrack(x, y, dir) {
+  getCorner(dir);
+  gridArray.push([x, y, dir]);
 }
 
 //    Draws the track from the stack, correct to the direction/corner.
