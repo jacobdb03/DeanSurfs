@@ -12,7 +12,8 @@ let trackRight,
   corner0,
   corner90,
   corner180,
-  corner270;
+  corner270,
+  cart;
 loadAssets().then((assets) => {
   trackRight = assets.trackRight;
   trackDown = assets.trackDown;
@@ -22,6 +23,8 @@ loadAssets().then((assets) => {
   corner90 = assets.corner90;
   corner180 = assets.corner180;
   corner270 = assets.corner270;
+  cart = assets.cart;
+
   new p5(coaster);
 });
 
@@ -29,7 +32,10 @@ loadAssets().then((assets) => {
 
 let bgCol = "#1d1d1d";
 let gridArray = [];
-let gridScale = 50;
+let gridScale = 30;
+
+let animPlay = false;
+let animIndex = 0;
 
 let showSetup = true;
 let drawGridControl = false;
@@ -241,8 +247,24 @@ function addSupports() {
 }
 
 //    Draws the cart to animate along the track
-function playAnimation() {
-  return;
+function playAnimation(c) {
+  if (!animPlay || gridArray.length === 0) return;
+  if (animIndex >= gridArray.length) {
+    animPlay = false;
+    animIndex = 0;
+    gridArray = []; // clear after animation finishes
+    return;
+  }
+
+  c.drawingContext.drawImage(
+    cart,
+    gridArray[animIndex][0],
+    gridArray[animIndex][1],
+    gridScale,
+    gridScale,
+  );
+
+  animIndex++;
 }
 
 //    Checks if there are any patterns in the shape of the coaster to replace them blocks with smoother curves/custom track shapes
@@ -264,6 +286,7 @@ const coaster = (c) => {
     tutorial(c);
 
     drawTrack(c);
+    // playAnimation(c);
   };
 
   c.mouseDragged = () => {
@@ -273,6 +296,8 @@ const coaster = (c) => {
   };
 
   c.mouseReleased = () => {
+    animPlay = true;
+    animIndex = 0;
     gridArray = [];
   };
 
@@ -280,17 +305,3 @@ const coaster = (c) => {
     c.resizeCanvas(window.innerWidth, window.innerHeight);
   };
 };
-
-/*
-LOGIC FOR ROLLER COASTER:
-
-  On mouse drag > check  to see if a roller coaster has been drawn in a roller coaster frame <<< STILL HERE
-    Roller coaster frame = bounding box holding an image in an invisible grid around the screen + a directional indicator to show where the direction of the coaster is heading
-    If yes: dont draw new roller coaster frame that check
-    If no: draw a new roller coaster frame in that new frame/box
-
-    Also: if skiped a square, draw a connecting path between the two (consider how to path this)
-    Also: for loop de loops, specifically designed shapes in the grid
-
-  On mouse release > animate the roller coaster character going along the drawn path
-*/

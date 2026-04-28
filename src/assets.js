@@ -8,6 +8,8 @@ import corner90Src from "./assets/corner90.png";
 import corner180Src from "./assets/corner180.png";
 import corner270Src from "./assets/corner270.png";
 
+import cartSrc from "./assets/cart.png";
+
 const loadImg = (src) =>
   new Promise((resolve) => {
     const img = new Image();
@@ -25,6 +27,7 @@ export const loadAssets = async () => {
     corner90,
     corner180,
     corner270,
+    cart,
   ] = await Promise.all([
     loadImg(trackRightSrc),
     loadImg(trackDownSrc),
@@ -34,6 +37,7 @@ export const loadAssets = async () => {
     loadImg(corner90Src),
     loadImg(corner180Src),
     loadImg(corner270Src),
+    loadImg(cartSrc),
   ]);
   return {
     trackRight,
@@ -44,5 +48,6 @@ export const loadAssets = async () => {
     corner90,
     corner180,
     corner270,
+    cart,
   };
 };
