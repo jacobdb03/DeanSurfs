@@ -252,17 +252,53 @@ function playAnimation(c) {
   if (animIndex >= gridArray.length) {
     animPlay = false;
     animIndex = 0;
-    gridArray = []; // clear after animation finishes
+    gridArray = [];
     return;
   }
 
   c.drawingContext.drawImage(
     cart,
     gridArray[animIndex][0],
-    gridArray[animIndex][1],
+    gridArray[animIndex][1] - gridScale / 2,
     gridScale,
     gridScale,
   );
+
+  // let direction = gridArray[animIndex][3];
+
+  // if (direction == 1 || direction == 11 || direction == 12) {
+  //   c.drawingContext.drawImage(
+  //     cart,
+  //     gridArray[animIndex][0],
+  //     gridArray[animIndex][1] - gridScale / 2,
+  //     gridScale,
+  //     gridScale,
+  //   );
+  // } else if (direction == 2 || direction == 21 || direction == 22) {
+  //   c.drawingContext.drawImage(
+  //     cart,
+  //     gridArray[animIndex][0] - gridScale / 2,
+  //     gridArray[animIndex][1],
+  //     gridScale,
+  //     gridScale,
+  //   );
+  // } else if (direction == 3 || direction == 31 || direction == 32) {
+  //   c.drawingContext.drawImage(
+  //     cart,
+  //     gridArray[animIndex][0],
+  //     gridArray[animIndex][1] + gridScale / 2,
+  //     gridScale,
+  //     gridScale,
+  //   );
+  // } else if (direction == 4 || direction == 41 || direction == 42) {
+  //   c.drawingContext.drawImage(
+  //     cart,
+  //     gridArray[animIndex][0] + gridScale / 2,
+  //     gridArray[animIndex][1],
+  //     gridScale,
+  //     gridScale,
+  //   );
+  // }
 
   animIndex++;
 }
@@ -277,6 +313,7 @@ function extraStyleChecks() {
 const coaster = (c) => {
   c.setup = () => {
     c.createCanvas(window.innerWidth, window.innerHeight);
+    c.frameRate(30);
   };
 
   c.draw = () => {
@@ -286,7 +323,7 @@ const coaster = (c) => {
     tutorial(c);
 
     drawTrack(c);
-    // playAnimation(c);
+    playAnimation(c);
   };
 
   c.mouseDragged = () => {
@@ -298,7 +335,7 @@ const coaster = (c) => {
   c.mouseReleased = () => {
     animPlay = true;
     animIndex = 0;
-    gridArray = [];
+    // gridArray = [];
   };
 
   c.windowResized = () => {
