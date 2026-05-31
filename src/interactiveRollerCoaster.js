@@ -1,344 +1,366 @@
 import "./style.css";
 import p5 from "p5";
-
 import { loadAssets } from "./assets.js";
 
 /* ———— Image and p5 loaded Checker ———— */
 
-let trackRight,
-  trackDown,
-  trackLeft,
-  trackUp,
-  corner0,
-  corner90,
-  corner180,
-  corner270,
-  cart;
+let cart;
 loadAssets().then((assets) => {
-  trackRight = assets.trackRight;
-  trackDown = assets.trackDown;
-  trackLeft = assets.trackLeft;
-  trackUp = assets.trackUp;
-  corner0 = assets.corner0;
-  corner90 = assets.corner90;
-  corner180 = assets.corner180;
-  corner270 = assets.corner270;
   cart = assets.cart;
-
   new p5(coaster);
 });
 
 /* ———— Variable assets ———— */
 
-let bgCol = "#1d1d1d";
-let gridArray = [];
-let gridScale = 30;
+let bgCol = ["#FE6533", "#FDC928", "#EC91FA", "#09A982"];
+let strokeCol = [
+  "#FE6533",
+  "#FDC928",
+  "#EC91FA",
+  "#09A982",
+  "#EEEEEE",
+  "#D9D9D9",
+];
+let strokeChoice;
+let bgChoice;
+
+let pathArray = [];
+let strokeSize = 50;
 
 let animPlay = false;
 let animIndex = 0;
+let animProgress = 0;
+let speedMultiplier = 1.0;
+const basePixelsPerFrame = 20;
 
-let showSetup = true;
+let smoothedAngle = 0;
+let smoothedPath = [];
+
 let drawGridControl = false;
 
-/* ———— Other functions ———— */
+/* ———— Demo variables ———— */
 
-//    Sets up the text that explains what to do before you start
-function tutorial(c) {
-  let font;
-  if (showSetup) {
-    c.fill(255);
-    c.strokeWeight(0);
-    if (font) c.textFont(font);
-    c.textAlign(c.CENTER, c.CENTER);
-    c.textSize(18);
-    c.text(
-      "click + hold anywhere to ride",
-      window.innerWidth / 2,
-      window.innerHeight / 2,
-    );
-  }
-}
+let demoPoints = [];
+let demoPath = [];
+let demoRevealIndex = 0;
+let demoComplete = false;
+const demoRevealSpeed = 3;
+let demoStrokeSize = 200;
 
-//    Creates a grid thats helpful in development
+/* ———— Helper functions ———— */
+
 function drawGrid(c) {
   if (!drawGridControl) return;
-
-  let xGrid;
-  let yGrid;
-
   c.strokeWeight(1);
   c.stroke(100);
   c.noFill();
-
-  for (xGrid = 0; xGrid < window.innerWidth; xGrid += gridScale) {
-    for (yGrid = 0; yGrid < window.innerHeight; yGrid += gridScale) {
-      c.rect(xGrid, yGrid, gridScale, gridScale);
+  for (let x = 0; x < window.innerWidth; x += 50) {
+    for (let y = 0; y < window.innerHeight; y += 50) {
+      c.rect(x, y, 50, 50);
     }
   }
 }
 
-/* ———— Define custom track variables ———— */
-//    Returns the x and y of the current box the mouse is in
-const getCurrentSquare = (c) => {
-  let xSquare = Math.floor(c.mouseX / gridScale);
-  let ySquare = Math.floor(c.mouseY / gridScale);
-
-  let x = xSquare * gridScale;
-  let y = ySquare * gridScale;
-
-  return { x: x, y: y };
-};
-
-//    Returns the x, y and direction[d] of the square immediately before the current one
-const getPrevSquare = () => {
-  if (gridArray.length <= 1) return { x: 0, y: 0, d: 0 };
-
-  const prevSquare = gridArray[gridArray.length - 1];
-  return { x: prevSquare[0], y: prevSquare[1], d: prevSquare[2] };
-};
-
-//    Returns the direction[d] of the current box compared to previous box   // 1 = trackRight // 2 = trackUp // 3 = trackLeft // 4 = trackDown
-const getCurrentDirection = (c) => {
-  let prevSquare = getPrevSquare();
-  let curSquare = getCurrentSquare(c);
-
-  if (prevSquare.x < curSquare.x) return { d: 1 };
-  else if (prevSquare.y > curSquare.y) return { d: 2 };
-  else if (prevSquare.x > curSquare.x) return { d: 3 };
-  else if (prevSquare.y < curSquare.y) return { d: 4 };
-  else return { d: 1 };
-};
-
-/* ———— Variable track functions ———— */
-//    Checks whether the previous tile needs to be a corner tile, by comparing the current direciton to the previous tiles direction
-function getCorner(currDir) {
-  let cornerDir = 0;
-
-  if (gridArray.length <= 1) return;
-  let prevDir = gridArray[gridArray.length - 1][2];
-
-  if (currDir === prevDir || prevDir === 0) return;
-
-  if (currDir === 2 && prevDir === 1) cornerDir = 11;
-  else if (currDir === 4 && prevDir === 1) cornerDir = 12;
-  else if (currDir === 1 && prevDir === 2) cornerDir = 21;
-  else if (currDir === 3 && prevDir === 2) cornerDir = 22;
-  else if (currDir === 2 && prevDir === 3) cornerDir = 31;
-  else if (currDir === 4 && prevDir === 3) cornerDir = 32;
-  else if (currDir === 1 && prevDir === 4) cornerDir = 41;
-  else if (currDir === 3 && prevDir === 4) cornerDir = 42;
-
-  if (cornerDir >= 11 && gridArray.length > 0) {
-    // Overwrite the direction of the PREVIOUS tile with the corner ID
-    gridArray[gridArray.length - 1][2] = cornerDir;
-  }
-
-  return cornerDir;
+function getAngleBetween(x1, y1, x2, y2) {
+  return Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
 }
 
-//    Checks if there is a gap between the previous tile and the current tile, and connects them if so.
-function connectTrack(prevSquare, currSquare) {
-  // if (gridArray.length <= 1) return;
-  if (prevSquare.x === currSquare.x && prevSquare.y === currSquare.y) return;
+function getVerticalTravel(y1, y2) {
+  return y2 - y1;
+}
 
-  let diffX = currSquare.x - prevSquare.x;
-  let diffY = currSquare.y - prevSquare.y;
-
-  if (Math.abs(diffX) > gridScale || Math.abs(diffY) > gridScale) {
-    let nextX = prevSquare.x;
-    let nextY = prevSquare.y;
-    let nextDir = 0;
-
-    if (diffX !== 0) {
-      if (diffX > 0) {
-        nextX += gridScale;
-        nextDir = 1;
-      } else {
-        nextX -= gridScale;
-        nextDir = 3;
-      }
+function smoothPath(points, passes = 2) {
+  let smoothed = points;
+  for (let p = 0; p < passes; p++) {
+    const result = [smoothed[0]];
+    for (let i = 1; i < smoothed.length - 1; i++) {
+      result.push([
+        (smoothed[i - 1][0] + smoothed[i][0] + smoothed[i + 1][0]) / 3,
+        (smoothed[i - 1][1] + smoothed[i][1] + smoothed[i + 1][1]) / 3,
+      ]);
     }
-    // Then move Y
-    else if (diffY !== 0) {
-      if (diffY > 0) {
-        nextY += gridScale;
-        nextDir = 4;
-      } else {
-        nextY -= gridScale;
-        nextDir = 2;
-      }
-    }
-
-    getCorner(nextDir);
-    addToTrack(nextX, nextY, nextDir);
-    connectTrack({ x: nextX, y: nextY, d: nextDir }, currSquare);
+    result.push(smoothed[smoothed.length - 1]);
+    smoothed = result;
   }
+  return smoothed;
 }
 
-/* ———— The track functions ———— */
-//    Completes the checks to make sure a piece of track can be drawn and adds it to the stack.
-function checkTrack(c) {
-  // Set up variables
-  let currentSquare = getCurrentSquare(c);
-  let direction = getCurrentDirection(c);
+/* ———— Demo functions ———— */
 
-  let previousSquare = getPrevSquare();
+//    Samples points along the SVG logo path and scales them to fit the canvas
+function sampleLogoPath(canvasWidth, canvasHeight) {
+  const svgPath = document.getElementById("logo-path");
+  if (!svgPath) return [];
 
-  // Check for movement to new square: break if not
-  if (
-    currentSquare.x === previousSquare.x &&
-    currentSquare.y === previousSquare.y
-  )
-    return;
+  const totalLength = svgPath.getTotalLength();
+  const numPoints = 300;
+  const points = [];
 
-  // If the array is empty, just place the first piece and STOP.
-  if (gridArray.length <= 1) {
-    gridArray.push([currentSquare.x, currentSquare.y, 1]);
-    return;
+  for (let i = 0; i <= numPoints; i++) {
+    const pt = svgPath.getPointAtLength((i / numPoints) * totalLength);
+    const ctm = svgPath.getScreenCTM();
+    const screenPt = new DOMPoint(pt.x, pt.y).matrixTransform(ctm);
+    points.push([screenPt.x, screenPt.y]);
   }
 
-  // Check for illegal movements immediately backwards: break if so
-  if (previousSquare.d === 1 && direction.d === 3) return;
-  else if (previousSquare.d === 3 && direction.d === 1) return;
-  else if (previousSquare.d === 2 && direction.d === 4) return;
-  else if (previousSquare.d === 4 && direction.d === 2) return;
+  // scale and centre on canvas
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const pathW = maxX - minX;
+  const pathH = maxY - minY;
 
-  // function that connects track together from fast mouse movement skipping boxes
-  connectTrack(previousSquare, currentSquare);
-}
-
-function addToTrack(x, y, dir) {
-  getCorner(dir);
-  gridArray.push([x, y, dir]);
-}
-
-//    Draws the track from the stack, correct to the direction/corner.
-function drawTrack(c) {
-  if (!trackUp) return;
-
-  for (let i = 0; i < gridArray.length; i++) {
-    const x = gridArray[i][0];
-    const y = gridArray[i][1];
-    const s = gridScale;
-    const dir = gridArray[i][2];
-
-    if (dir >= 11) {
-      if (dir === 11) c.drawingContext.drawImage(corner270, x, y, s, s);
-      else if (dir === 12) c.drawingContext.drawImage(corner90, x, y, s, s);
-      else if (dir === 21) c.drawingContext.drawImage(corner0, x, y, s, s);
-      else if (dir === 22) c.drawingContext.drawImage(corner90, x, y, s, s);
-      else if (dir === 31) c.drawingContext.drawImage(corner180, x, y, s, s);
-      else if (dir === 32) c.drawingContext.drawImage(corner0, x, y, s, s);
-      else if (dir === 41) c.drawingContext.drawImage(corner180, x, y, s, s);
-      else if (dir === 42) c.drawingContext.drawImage(corner270, x, y, s, s);
-    } else {
-      if (dir === 1) c.drawingContext.drawImage(trackRight, x, y, s, s);
-      else if (dir === 2) c.drawingContext.drawImage(trackUp, x, y, s, s);
-      else if (dir === 3) c.drawingContext.drawImage(trackLeft, x, y, s, s);
-      else if (dir === 4) c.drawingContext.drawImage(trackDown, x, y, s, s);
-    }
-  }
-}
-
-/* ———— Visual additions ———— */
-//    Connects the drawn track to the bottom of the page.
-function addSupports() {
-  return;
-}
-
-//    Draws the cart to animate along the track
-function playAnimation(c) {
-  if (!animPlay || gridArray.length === 0) return;
-  if (animIndex >= gridArray.length) {
-    animPlay = false;
-    animIndex = 0;
-    gridArray = [];
-    return;
-  }
-
-  c.drawingContext.drawImage(
-    cart,
-    gridArray[animIndex][0],
-    gridArray[animIndex][1] - gridScale / 2,
-    gridScale,
-    gridScale,
+  const scale = Math.min(
+    (canvasWidth * 1) / pathW,
+    (canvasHeight * 0.8) / pathH,
   );
 
-  // let direction = gridArray[animIndex][3];
-
-  // if (direction == 1 || direction == 11 || direction == 12) {
-  //   c.drawingContext.drawImage(
-  //     cart,
-  //     gridArray[animIndex][0],
-  //     gridArray[animIndex][1] - gridScale / 2,
-  //     gridScale,
-  //     gridScale,
-  //   );
-  // } else if (direction == 2 || direction == 21 || direction == 22) {
-  //   c.drawingContext.drawImage(
-  //     cart,
-  //     gridArray[animIndex][0] - gridScale / 2,
-  //     gridArray[animIndex][1],
-  //     gridScale,
-  //     gridScale,
-  //   );
-  // } else if (direction == 3 || direction == 31 || direction == 32) {
-  //   c.drawingContext.drawImage(
-  //     cart,
-  //     gridArray[animIndex][0],
-  //     gridArray[animIndex][1] + gridScale / 2,
-  //     gridScale,
-  //     gridScale,
-  //   );
-  // } else if (direction == 4 || direction == 41 || direction == 42) {
-  //   c.drawingContext.drawImage(
-  //     cart,
-  //     gridArray[animIndex][0] + gridScale / 2,
-  //     gridArray[animIndex][1],
-  //     gridScale,
-  //     gridScale,
-  //   );
-  // }
-
-  animIndex++;
+  const offsetX = (canvasWidth - pathW * scale) / 2 - minX * scale;
+  const offsetY = canvasHeight - pathH * scale - minY * scale + 150;
+  return points.map((p) => [p[0] * scale + offsetX, p[1] * scale + offsetY]);
 }
 
-//    Checks if there are any patterns in the shape of the coaster to replace them blocks with smoother curves/custom track shapes
-function extraStyleChecks() {
-  return;
+//    Initialises the demo path on setup
+function initDemo(canvasWidth, canvasHeight) {
+  demoPoints = sampleLogoPath(canvasWidth, canvasHeight);
+  demoRevealIndex = 0;
+  demoPath = [];
+  demoComplete = false;
+}
+
+//    Progressively draws the logo path and triggers the animation when complete
+function runDemo(c) {
+  if (demoComplete) return;
+
+  if (demoRevealIndex < demoPoints.length) {
+    const demoProgress = demoRevealIndex / demoPoints.length;
+    const eased = (1 - Math.cos(demoProgress * Math.PI)) / 2; // 0 to 1, ease in and out
+    const easedSpeed = demoRevealSpeed * (0.1 + eased * 2); // min speed 0.1, max ~2x
+    demoRevealIndex += easedSpeed;
+
+    demoPath = demoPoints.slice(0, demoRevealIndex);
+  }
+
+  if (demoPath.length < 2) return;
+
+  c.drawingContext.beginPath();
+  c.drawingContext.moveTo(demoPath[0][0], demoPath[0][1]);
+
+  for (let i = 1; i < demoPath.length - 1; i++) {
+    const midX = (demoPath[i][0] + demoPath[i + 1][0]) / 2;
+    const midY = (demoPath[i][1] + demoPath[i + 1][1]) / 2;
+    c.drawingContext.quadraticCurveTo(
+      demoPath[i][0],
+      demoPath[i][1],
+      midX,
+      midY,
+    );
+  }
+
+  const last = demoPath[demoPath.length - 1];
+  c.drawingContext.lineTo(last[0], last[1]);
+  c.drawingContext.strokeStyle = strokeChoice;
+  c.drawingContext.lineWidth = demoStrokeSize;
+  c.drawingContext.lineCap = "butt";
+  c.drawingContext.lineJoin = "butt";
+  c.drawingContext.stroke();
+
+  // once fully drawn, trigger the coaster animation
+  if (demoRevealIndex >= demoPoints.length) {
+    demoComplete = true;
+    pathArray = [...demoPoints];
+    smoothedPath = smoothPath(pathArray, 3);
+    strokeSize = demoStrokeSize;
+    animPlay = true;
+    animIndex = 0;
+    animProgress = 0;
+    speedMultiplier = 1.0;
+    smoothedAngle = 0;
+  }
+}
+
+/* ———— Track functions ———— */
+
+//    Adds the current mouse position to the path
+function checkTrack(c) {
+  const x = c.mouseX;
+  const y = c.mouseY;
+
+  if (pathArray.length > 0) {
+    const last = pathArray[pathArray.length - 1];
+    const dx = x - last[0];
+    const dy = y - last[1];
+    const cartDistance = Math.sqrt(dx * dx + dy * dy);
+    if (cartDistance < 5) return;
+  }
+
+  pathArray.push([x, y]);
+}
+
+//    Draws the track as a smooth stroked line through all points
+function drawTrack(c) {
+  const points = animPlay ? smoothedPath : smoothPath(pathArray, 2);
+  if (points.length < 2 || !points[0] || !points[points.length - 1]) return;
+
+  c.drawingContext.beginPath();
+  c.drawingContext.moveTo(points[0][0], points[0][1]);
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const midX = (points[i][0] + points[i + 1][0]) / 2;
+    const midY = (points[i][1] + points[i + 1][1]) / 2;
+    c.drawingContext.quadraticCurveTo(points[i][0], points[i][1], midX, midY);
+  }
+
+  const last = points[points.length - 1];
+  c.drawingContext.lineTo(last[0], last[1]);
+
+  c.drawingContext.strokeStyle = strokeChoice;
+  c.drawingContext.lineWidth = strokeSize;
+  c.drawingContext.lineCap = "butt";
+  c.drawingContext.lineJoin = "butt";
+  c.drawingContext.stroke();
+}
+
+/* ———— Animation functions ———— */
+
+//    Draws the cart at the correct position with nudge offset
+function drawCart(c, x, y, angle, nx, ny) {
+  const size = strokeSize * 1.5;
+  c.fill(strokeChoice);
+  c.noStroke();
+  c.circle(x + nx, y + ny, size);
+}
+
+//    Animates the cart along the drawn path
+function playAnimation(c) {
+  if (!animPlay || smoothedPath.length < 2) return;
+
+  if (animIndex >= smoothedPath.length - 1) {
+    animPlay = false;
+    animIndex = 0;
+    animProgress = 0;
+    pathArray = [];
+    smoothedPath = [];
+    return;
+  }
+
+  const cur = smoothedPath[animIndex];
+  const nxt = smoothedPath[animIndex + 1];
+
+  // interpolate position
+  const lerpX = c.lerp(cur[0], nxt[0], animProgress);
+  const lerpY = c.lerp(cur[1], nxt[1], animProgress);
+
+  // rotation — sample ahead and behind for stable tangent
+  const behind = Math.max(animIndex - 4, 0);
+  const ahead = Math.min(animIndex + 4, smoothedPath.length - 1);
+  const rawAngle = getAngleBetween(
+    smoothedPath[behind][0],
+    smoothedPath[behind][1],
+    smoothedPath[ahead][0],
+    smoothedPath[ahead][1],
+  );
+
+  let diff = rawAngle - smoothedAngle;
+  while (diff < -180) diff += 360;
+  while (diff > 180) diff -= 360;
+  smoothedAngle += diff * 0.08;
+
+  // nudge cart above the track
+  const nudgeAmount = strokeSize * 2;
+  const perpAngle = (smoothedAngle - 90) * (Math.PI / 180);
+  const nx = Math.cos(perpAngle) * nudgeAmount;
+  const ny = Math.sin(perpAngle) * nudgeAmount;
+
+  drawCart(c, lerpX, lerpY, smoothedAngle, nx, ny);
+
+  // segment length for consistent pixel speed
+  const dx = nxt[0] - cur[0];
+  const dy = nxt[1] - cur[1];
+  const segmentLength = Math.sqrt(dx * dx + dy * dy);
+
+  // momentum — multiplier builds up over time based on slope
+  const verticalTravel = getVerticalTravel(cur[1], nxt[1]);
+
+  if (verticalTravel > 2) {
+    speedMultiplier += 0.03; // downhill, gain speed
+  } else if (verticalTravel < -2) {
+    speedMultiplier -= 0.025; // uphill, lose speed
+  } else {
+    speedMultiplier += (1.0 - speedMultiplier) * 0.08; // flat, drift back
+  }
+
+  speedMultiplier = Math.max(0.4, Math.min(speedMultiplier, 3.0));
+  animProgress += (basePixelsPerFrame * speedMultiplier) / segmentLength;
+
+  if (animProgress >= 1) {
+    animProgress = 0;
+    animIndex++;
+  }
 }
 
 /* ———— The p5 Logic ———— */
 
 const coaster = (c) => {
   c.setup = () => {
-    c.createCanvas(window.innerWidth, window.innerHeight);
-    c.frameRate(30);
+    const container = document.getElementById("canvas-container");
+
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+
+    const canvas = c.createCanvas(w, h);
+
+    canvas.parent("canvas-container");
+
+    c.frameRate(60);
+    bgChoice = c.random(bgCol);
+    strokeChoice = c.random(strokeCol);
+
+    while (strokeChoice == bgChoice) {
+      strokeChoice = c.random(strokeCol);
+    }
+
+    initDemo(window.innerWidth, window.innerHeight);
+    window.sharedBgChoice = bgChoice;
   };
 
   c.draw = () => {
-    c.background(bgCol);
+    c.background(bgChoice);
     drawGrid(c);
-
-    tutorial(c);
-
+    runDemo(c);
     drawTrack(c);
     playAnimation(c);
   };
 
   c.mouseDragged = () => {
-    showSetup = false;
-
+    if (animPlay || !demoComplete) {
+      animPlay = false;
+      animIndex = 0;
+      animProgress = 0;
+      pathArray = [];
+      smoothedPath = [];
+      demoComplete = true;
+      strokeSize = 50;
+    }
     checkTrack(c);
   };
 
   c.mouseReleased = () => {
-    animPlay = true;
-    animIndex = 0;
-    // gridArray = [];
+    if (pathArray.length > 1) {
+      smoothedPath = smoothPath(pathArray, 2);
+      animPlay = true;
+      animIndex = 0;
+      animProgress = 0;
+      speedMultiplier = 1.0;
+      smoothedAngle = 0;
+    }
   };
 
   c.windowResized = () => {
-    c.resizeCanvas(window.innerWidth, window.innerHeight);
+    const container = document.getElementById("canvas-container");
+    c.resizeCanvas(container.clientWidth, container.clientHeight);
   };
 };
