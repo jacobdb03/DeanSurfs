@@ -25,27 +25,36 @@ let strokeChoice;
 let bgChoice;
 
 let pathArray = [];
-let strokeSize = 50;
+let strokeSize = 20;
 
 let animPlay = false;
 let animIndex = 0;
 let animProgress = 0;
 let speedMultiplier = 1.0;
-const basePixelsPerFrame = 20;
+const basePixelsPerFrame = 12;
+
+// Second cart
+let animIndex2 = 0;
+let animProgress2 = 0;
+let speedMultiplier2 = 1.0;
+let smoothedAngle2 = 0;
 
 let smoothedAngle = 0;
 let smoothedPath = [];
+
+// Looping path (smoothedPath + closing curve points)
+let loopedPath = [];
 
 let drawGridControl = false;
 
 /* ———— Demo variables ———— */
 
 let demoPoints = [];
+let demoDrawIndex = 0; // float index into demoPoints for consistent speed
 let demoPath = [];
-let demoRevealIndex = 0;
 let demoComplete = false;
-const demoRevealSpeed = 3;
-let demoStrokeSize = 200;
+const demoPixelsPerFrame = 12; // consistent pixel speed for draw-in
+let demoStrokeSize = 20;
 
 /* ———— Helper functions ———— */
 
@@ -85,9 +94,76 @@ function smoothPath(points, passes = 2) {
   return smoothed;
 }
 
+/*
+  Build a looped version of a path by inserting a smooth cubic-bezier
+  bridge between the last point and the first point, then appending
+  the first point so the path genuinely closes.
+*/
+function buildLoopedPath(points, bridgeSamples = 60) {
+  if (points.length < 2) return points;
+
+  const first = points[0];
+  const last = points[points.length - 1];
+
+  // Tangent at the end (backwards from last two points)
+  const prev = points[points.length - 2];
+  const endTangentX = last[0] - prev[0];
+  const endTangentY = last[1] - prev[1];
+
+  // Tangent at the start (forward from first two points)
+  const next = points[1];
+  const startTangentX = next[0] - first[0];
+  const startTangentY = next[1] - first[1];
+
+  const bridgeDist = Math.sqrt(
+    (last[0] - first[0]) ** 2 + (last[1] - first[1]) ** 2,
+  );
+  const handleScale = bridgeDist * 0.4;
+
+  // Control points
+  const cp1x =
+    last[0] +
+    (endTangentX / (Math.sqrt(endTangentX ** 2 + endTangentY ** 2) || 1)) *
+      handleScale;
+  const cp1y =
+    last[1] +
+    (endTangentY / (Math.sqrt(endTangentX ** 2 + endTangentY ** 2) || 1)) *
+      handleScale;
+  const cp2x =
+    first[0] -
+    (startTangentX /
+      (Math.sqrt(startTangentX ** 2 + startTangentY ** 2) || 1)) *
+      handleScale;
+  const cp2y =
+    first[1] -
+    (startTangentY /
+      (Math.sqrt(startTangentX ** 2 + startTangentY ** 2) || 1)) *
+      handleScale;
+
+  // Sample the cubic bezier bridge
+  const bridge = [];
+  for (let i = 1; i <= bridgeSamples; i++) {
+    const t = i / bridgeSamples;
+    const mt = 1 - t;
+    const bx =
+      mt * mt * mt * last[0] +
+      3 * mt * mt * t * cp1x +
+      3 * mt * t * t * cp2x +
+      t * t * t * first[0];
+    const by =
+      mt * mt * mt * last[1] +
+      3 * mt * mt * t * cp1y +
+      3 * mt * t * t * cp2y +
+      t * t * t * first[1];
+    bridge.push([bx, by]);
+  }
+
+  return [...points, ...bridge];
+}
+
 /* ———— Demo functions ———— */
 
-//    Samples points along the SVG logo path and scales them to fit the canvas
+// Samples points along the SVG logo path and scales them to fit the canvas — centred
 function sampleLogoPath(canvasWidth, canvasHeight) {
   const svgPath = document.getElementById("logo-path");
   if (!svgPath) return [];
@@ -103,7 +179,7 @@ function sampleLogoPath(canvasWidth, canvasHeight) {
     points.push([screenPt.x, screenPt.y]);
   }
 
-  // scale and centre on canvas
+  // Find bounds
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
   const minX = Math.min(...xs);
@@ -113,37 +189,72 @@ function sampleLogoPath(canvasWidth, canvasHeight) {
   const pathW = maxX - minX;
   const pathH = maxY - minY;
 
+  // Scale to fit with padding
   const scale = Math.min(
-    (canvasWidth * 1) / pathW,
-    (canvasHeight * 0.8) / pathH,
+    (canvasWidth * 0.8) / pathW,
+    (canvasHeight * 0.5) / pathH,
   );
 
+  // Centre on canvas
   const offsetX = (canvasWidth - pathW * scale) / 2 - minX * scale;
-  const offsetY = canvasHeight - pathH * scale - minY * scale + 150;
+  const offsetY = (canvasHeight - pathH * scale) / 2 - minY * scale;
+
   return points.map((p) => [p[0] * scale + offsetX, p[1] * scale + offsetY]);
 }
 
-//    Initialises the demo path on setup
+// Initialises the demo path on setup
 function initDemo(canvasWidth, canvasHeight) {
   demoPoints = sampleLogoPath(canvasWidth, canvasHeight);
-  demoRevealIndex = 0;
+  demoDrawIndex = 0;
   demoPath = [];
   demoComplete = false;
 }
 
-//    Progressively draws the logo path and triggers the animation when complete
-function runDemo(c) {
-  if (demoComplete) return;
+// Advances the demo draw-in at a consistent pixel speed
+function advanceDemoDrawIn() {
+  if (demoComplete || demoPoints.length === 0) return;
 
-  if (demoRevealIndex < demoPoints.length) {
-    const demoProgress = demoRevealIndex / demoPoints.length;
-    const eased = (1 - Math.cos(demoProgress * Math.PI)) / 2; // 0 to 1, ease in and out
-    const easedSpeed = demoRevealSpeed * (0.1 + eased * 2); // min speed 0.1, max ~2x
-    demoRevealIndex += easedSpeed;
-
-    demoPath = demoPoints.slice(0, demoRevealIndex);
+  // Advance by enough steps to cover ~demoPixelsPerFrame pixels
+  let budget = demoPixelsPerFrame;
+  while (budget > 0 && Math.floor(demoDrawIndex) < demoPoints.length - 1) {
+    const i = Math.floor(demoDrawIndex);
+    const next = Math.min(i + 1, demoPoints.length - 1);
+    const dx = demoPoints[next][0] - demoPoints[i][0];
+    const dy = demoPoints[next][1] - demoPoints[i][1];
+    const segLen = Math.sqrt(dx * dx + dy * dy) || 1;
+    const step = budget / segLen;
+    demoDrawIndex = Math.min(demoDrawIndex + step, demoPoints.length - 1);
+    budget -= segLen * step;
+    if (demoDrawIndex >= demoPoints.length - 1) break;
   }
 
+  demoPath = demoPoints.slice(0, Math.floor(demoDrawIndex) + 1);
+
+  // Once fully drawn, kick off looping animation
+  if (demoDrawIndex >= demoPoints.length - 1) {
+    demoComplete = true;
+    pathArray = [...demoPoints];
+    const base = smoothPath(pathArray, 3);
+    smoothedPath = base;
+    loopedPath = buildLoopedPath(base, 60);
+    strokeSize = demoStrokeSize;
+    animPlay = true;
+    animIndex = 0;
+    animProgress = 0;
+    speedMultiplier = 1.0;
+    smoothedAngle = 0;
+
+    // Start second cart offset by half the path
+    const halfwayIndex = Math.floor(loopedPath.length / 2);
+    animIndex2 = halfwayIndex;
+    animProgress2 = 0;
+    speedMultiplier2 = 1.0;
+    smoothedAngle2 = 0;
+  }
+}
+
+// Draws the currently revealed portion of the demo
+function drawDemoStroke(c) {
   if (demoPath.length < 2) return;
 
   c.drawingContext.beginPath();
@@ -167,24 +278,17 @@ function runDemo(c) {
   c.drawingContext.lineCap = "butt";
   c.drawingContext.lineJoin = "butt";
   c.drawingContext.stroke();
+}
 
-  // once fully drawn, trigger the coaster animation
-  if (demoRevealIndex >= demoPoints.length) {
-    demoComplete = true;
-    pathArray = [...demoPoints];
-    smoothedPath = smoothPath(pathArray, 3);
-    strokeSize = demoStrokeSize;
-    animPlay = true;
-    animIndex = 0;
-    animProgress = 0;
-    speedMultiplier = 1.0;
-    smoothedAngle = 0;
-  }
+function runDemo(c) {
+  if (demoComplete) return;
+  advanceDemoDrawIn();
+  drawDemoStroke(c);
 }
 
 /* ———— Track functions ———— */
 
-//    Adds the current mouse position to the path
+// Adds the current mouse position to the path
 function checkTrack(c) {
   const x = c.mouseX;
   const y = c.mouseY;
@@ -200,9 +304,9 @@ function checkTrack(c) {
   pathArray.push([x, y]);
 }
 
-//    Draws the track as a smooth stroked line through all points
+// Draws the track — uses loopedPath when animating so the closing curve is visible
 function drawTrack(c) {
-  const points = animPlay ? smoothedPath : smoothPath(pathArray, 2);
+  const points = animPlay ? loopedPath : smoothPath(pathArray, 2);
   if (points.length < 2 || !points[0] || !points[points.length - 1]) return;
 
   c.drawingContext.beginPath();
@@ -226,7 +330,7 @@ function drawTrack(c) {
 
 /* ———— Animation functions ———— */
 
-//    Draws the cart at the correct position with nudge offset
+// Draws a cart dot at the given position with perpendicular nudge
 function drawCart(c, x, y, angle, nx, ny) {
   const size = strokeSize * 1.5;
   c.fill(strokeChoice);
@@ -234,72 +338,106 @@ function drawCart(c, x, y, angle, nx, ny) {
   c.circle(x + nx, y + ny, size);
 }
 
-//    Animates the cart along the drawn path
-function playAnimation(c) {
-  if (!animPlay || smoothedPath.length < 2) return;
+// Returns speed multiplier delta based on vertical travel
+function calcSpeedDelta(verticalTravel) {
+  if (verticalTravel > 2) return 0.03;
+  if (verticalTravel < -2) return -0.025;
+  return 0; // flat — handled by drift separately
+}
 
-  if (animIndex >= smoothedPath.length - 1) {
-    animPlay = false;
-    animIndex = 0;
-    animProgress = 0;
-    pathArray = [];
-    smoothedPath = [];
-    return;
+// Advances a single cart along loopedPath; returns updated state
+function stepCart(c, idx, prog, sAngle, sMultiplier) {
+  const path = loopedPath;
+  if (!path || path.length < 2)
+    return { idx, prog, sAngle, sMultiplier, x: 0, y: 0, nx: 0, ny: 0 };
+
+  // Wrap at end for looping
+  if (idx >= path.length - 1) {
+    idx = 0;
+    prog = 0;
   }
 
-  const cur = smoothedPath[animIndex];
-  const nxt = smoothedPath[animIndex + 1];
+  const cur = path[idx];
+  const nxt = path[idx + 1] || path[0];
 
-  // interpolate position
-  const lerpX = c.lerp(cur[0], nxt[0], animProgress);
-  const lerpY = c.lerp(cur[1], nxt[1], animProgress);
+  const lerpX = c.lerp(cur[0], nxt[0], prog);
+  const lerpY = c.lerp(cur[1], nxt[1], prog);
 
-  // rotation — sample ahead and behind for stable tangent
-  const behind = Math.max(animIndex - 4, 0);
-  const ahead = Math.min(animIndex + 4, smoothedPath.length - 1);
+  // Stable tangent
+  const behind = Math.max(idx - 4, 0);
+  const ahead = Math.min(idx + 4, path.length - 1);
   const rawAngle = getAngleBetween(
-    smoothedPath[behind][0],
-    smoothedPath[behind][1],
-    smoothedPath[ahead][0],
-    smoothedPath[ahead][1],
+    path[behind][0],
+    path[behind][1],
+    path[ahead][0],
+    path[ahead][1],
   );
 
-  let diff = rawAngle - smoothedAngle;
+  let diff = rawAngle - sAngle;
   while (diff < -180) diff += 360;
   while (diff > 180) diff -= 360;
-  smoothedAngle += diff * 0.08;
+  sAngle += diff * 0.08;
 
-  // nudge cart above the track
   const nudgeAmount = strokeSize * 2;
-  const perpAngle = (smoothedAngle - 90) * (Math.PI / 180);
+  const perpAngle = (sAngle - 90) * (Math.PI / 180);
   const nx = Math.cos(perpAngle) * nudgeAmount;
   const ny = Math.sin(perpAngle) * nudgeAmount;
 
-  drawCart(c, lerpX, lerpY, smoothedAngle, nx, ny);
-
-  // segment length for consistent pixel speed
   const dx = nxt[0] - cur[0];
   const dy = nxt[1] - cur[1];
-  const segmentLength = Math.sqrt(dx * dx + dy * dy);
+  const segLen = Math.sqrt(dx * dx + dy * dy) || 1;
 
-  // momentum — multiplier builds up over time based on slope
   const verticalTravel = getVerticalTravel(cur[1], nxt[1]);
+  sMultiplier += calcSpeedDelta(verticalTravel);
+  if (Math.abs(verticalTravel) <= 2) {
+    sMultiplier += (1.0 - sMultiplier) * 0.08;
+  }
+  sMultiplier = Math.max(0.4, Math.min(sMultiplier, 3.0));
 
-  if (verticalTravel > 2) {
-    speedMultiplier += 0.03; // downhill, gain speed
-  } else if (verticalTravel < -2) {
-    speedMultiplier -= 0.025; // uphill, lose speed
-  } else {
-    speedMultiplier += (1.0 - speedMultiplier) * 0.08; // flat, drift back
+  prog += (basePixelsPerFrame * sMultiplier) / segLen;
+
+  if (prog >= 1) {
+    prog = 0;
+    idx++;
+    if (idx >= path.length - 1) {
+      idx = 0; // loop
+    }
   }
 
-  speedMultiplier = Math.max(0.4, Math.min(speedMultiplier, 3.0));
-  animProgress += (basePixelsPerFrame * speedMultiplier) / segmentLength;
+  return { idx, prog, sAngle, sMultiplier, x: lerpX, y: lerpY, nx, ny };
+}
 
-  if (animProgress >= 1) {
-    animProgress = 0;
-    animIndex++;
-  }
+// Animates both carts along the looped path
+function playAnimation(c) {
+  if (!animPlay || loopedPath.length < 2) return;
+
+  // Cart 1
+  const s1 = stepCart(
+    c,
+    animIndex,
+    animProgress,
+    smoothedAngle,
+    speedMultiplier,
+  );
+  drawCart(c, s1.x, s1.y, s1.sAngle, s1.nx, s1.ny);
+  animIndex = s1.idx;
+  animProgress = s1.prog;
+  smoothedAngle = s1.sAngle;
+  speedMultiplier = s1.sMultiplier;
+
+  // Cart 2
+  const s2 = stepCart(
+    c,
+    animIndex2,
+    animProgress2,
+    smoothedAngle2,
+    speedMultiplier2,
+  );
+  drawCart(c, s2.x, s2.y, s2.sAngle, s2.nx, s2.ny);
+  animIndex2 = s2.idx;
+  animProgress2 = s2.prog;
+  smoothedAngle2 = s2.sAngle;
+  speedMultiplier2 = s2.sMultiplier;
 }
 
 /* ———— The p5 Logic ———— */
@@ -312,14 +450,13 @@ const coaster = (c) => {
     const h = container.clientHeight;
 
     const canvas = c.createCanvas(w, h);
-
     canvas.parent("canvas-container");
 
     c.frameRate(60);
     bgChoice = c.random(bgCol);
     strokeChoice = c.random(strokeCol);
 
-    while (strokeChoice == bgChoice) {
+    while (strokeChoice === bgChoice) {
       strokeChoice = c.random(strokeCol);
     }
 
@@ -336,12 +473,16 @@ const coaster = (c) => {
   };
 
   c.mouseDragged = () => {
+    // Interrupt demo or ongoing animation to let the user draw
     if (animPlay || !demoComplete) {
       animPlay = false;
       animIndex = 0;
       animProgress = 0;
+      animIndex2 = 0;
+      animProgress2 = 0;
       pathArray = [];
       smoothedPath = [];
+      loopedPath = [];
       demoComplete = true;
       strokeSize = 50;
     }
@@ -350,17 +491,29 @@ const coaster = (c) => {
 
   c.mouseReleased = () => {
     if (pathArray.length > 1) {
-      smoothedPath = smoothPath(pathArray, 2);
+      const base = smoothPath(pathArray, 2);
+      smoothedPath = base;
+      loopedPath = buildLoopedPath(base, 60);
       animPlay = true;
       animIndex = 0;
       animProgress = 0;
       speedMultiplier = 1.0;
       smoothedAngle = 0;
+
+      const halfwayIndex = Math.floor(loopedPath.length / 2);
+      animIndex2 = halfwayIndex;
+      animProgress2 = 0;
+      speedMultiplier2 = 1.0;
+      smoothedAngle2 = 0;
     }
   };
 
   c.windowResized = () => {
     const container = document.getElementById("canvas-container");
     c.resizeCanvas(container.clientWidth, container.clientHeight);
+    // Re-sample the logo path for the new canvas size if demo hasn't completed
+    if (!demoComplete) {
+      initDemo(container.clientWidth, container.clientHeight);
+    }
   };
 };

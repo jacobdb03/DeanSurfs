@@ -21,39 +21,3 @@ body {
     padding: 0px;
     overflow-x: hidden;
 }
-
-nav {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 10;
-    width: 100vw;
-    height: 4vh;
-    box-sizing: border-box;
-    padding: 20px;
-}
-
-.navInner {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    height: 4vh;
-    align-content: center;
-}
-
-nav a {
-    color: #1e1e1e;
-    font-size: 20px;
-    align-content: top;
-    width: 100px;
-    text-align: center;
-}
-
-nav a:hover {
-    transition-duration: 200ms;
-}
-
-nav a img {
-    object-fit: contain;
-    width: 4vw;
-}

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <!--<link rel="icon" type="image/svg+xml" href="/favicon.svg" />-->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>deanRides</title>
+
+        <link rel="stylesheet" href="style.css" />
+        <!--<script src="/src/page.js"></script>-->
+    </head>
+    <body>
+        <nav class="absolute flex z-10 w-screen h-screen">
+            <div class="flex justify-between w-full h-full">
+                <a
+                    class="font-coolvetica font-bold text-[#1e1e1e] text-lg w-100 text-center align-middle"
+                    href="javascript:void(0)"
+                    >about</a
+                >
+                <a class="object-contain w-[4vw]" href="javascript:void(0)"
+                    ><img src="src/assets/DeanRidesLogo.png"
+                /></a>
+                <a
+                    class="font-coolvetica font-bold text-[#1e1e1e] text-lg w-100 text-center align-middle"
+                    href="javascript:void(0)"
+                    >youtube</a
+                >
+            </div>
+        </nav>
+
+        <div class="relative w-full h-full overflow-hidden">
+            <svg
+                width="1322"
+                height="1533"
+                viewBox="0 0 1322 1533"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                id="logo-svg"
+                class="absolute bottom opacity-0"
+            >
+                <path
+                    id="logo-path"
+                    d="M150.022 1530C139.641 1096.29 -80.3453 245.899 542.586 118.264C702.753 85.4464 934.577 95.6144 974.883 297.708C995.362 400.395 858.067 539.085 858.067 539.085L1226 1390.25"
+                    stroke="#1E1E1E"
+                    stroke-width="300"
+                    stroke-linecap="butt"
+                />
+            </svg>
+        </div>
+
+        <div
+            id="canvas-container"
+            class="relative w-full h-[110vh] z-1 overflow-hidden"
+        >
+            <script
+                type="module"
+                src="/src/interactiveRollerCoaster.js"
+            ></script>
+        </div>
+
+        <div
+            class="relative mt-[-10vh] bg-[#1e1e1e] flex flex-col h-[60vh] justify-end items-end px-6 z-10 overflow-hidden rounded-t-4xl"
+        >
+            <h1 class="text-[#EEEEEE] text-lg text-right max-w-xs -mb-38">
+                Hey! My name is Dean, and I'm on a mission to ride every coaster
+                in the UK... and then the world!
+            </h1>
+            <p></p>
+            <img
+                class="h-auto max-h-full w-auto mb-[-1vh]"
+                src="src/assets/DeanRidesFullLogoWhite.png"
+            />
+        </div>
+    </body>
+</html>
