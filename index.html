@@ -2,92 +2,84 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <!--<link rel="icon" type="image/svg+xml" href="/favicon.svg" />-->
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>deanRides</title>
-
-        <link rel="stylesheet" href="style.css" />
+        <link rel="icon" href="src/assets/DeanRidesLogo.png" />
+        <link rel="stylesheet" href="src/style.css" />
     </head>
     <body>
+        <!-- Background color -->
+        <div id="bg-layer" class="absolute inset-0 z-0 w-full h-screen"></div>
+
         <nav
-            class="absolute z-2 flex flex-row justify-center items-center w-screen h-screen"
+            class="absolute flex flex-col md:flex-row w-screen h-screen select-none justify-center items-center z-30 pointer-events-none"
         >
-            <a href="javascript:void(0)"
-                ><img
-                    class="w-48 h-auto m-10"
-                    src="src/assets/DeanRidesLogo.svg"
-            /></a>
-            <a href="https://www.instagram.com/deanstokes"
-                ><img
-                    class="w-48 h-auto m-10"
-                    src="src/assets/InstagramIcon.svg"
-            /></a>
-            <a href="https://www.youtube.com/@deanstokesonrides/">
+            <a
+                href="https://deanrides.com/"
+                class="pointer-events-auto md:mr-10 md:ml-10 mb-20 md:mb-0"
+            >
                 <img
-                    class="w-48 h-auto m-10"
+                    class="w-32 md:w-48 h-auto"
+                    src="src/assets/DeanRidesLogo.svg"
+                />
+            </a>
+            <a
+                href="https://www.instagram.com/deanstokes"
+                class="pointer-events-auto md:mr-10 md:ml-10 mb-20 md:mb-0"
+            >
+                <img
+                    class="w-32 md:w-48 h-auto"
+                    src="src/assets/InstagramIcon.svg"
+                />
+            </a>
+            <a
+                href="https://www.youtube.com/@deanstokesonrides/"
+                class="pointer-events-auto md:mr-10 md:ml-10 mb-20 md:mb-0"
+            >
+                <img
+                    class="w-32 md:w-48 h-auto"
                     src="src/assets/YoutubeIcon.svg"
                 />
             </a>
-            <a href="https://www.tiktok.com/@dean_stokes">
-                <img class="w-48 h-auto m-10" src="src/assets/TikTokIcon.svg" />
+            <a
+                href="https://www.tiktok.com/@dean_stokes"
+                class="pointer-events-auto md:mr-10 md:ml-10 mb-20 md:mb-0"
+            >
+                <img
+                    class="w-32 md:w-48 h-auto"
+                    src="src/assets/TikTokIcon.svg"
+                />
             </a>
         </nav>
 
-        <div class="relative w-full z-1 h-full overflow-hidden">
-            <svg
-                width="1322"
-                height="1533"
-                viewBox="0 0 1322 1533"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                id="logo-svg"
-                class="absolute bottom-0 opacity-0"
-                viewBox="0 0 1208 409"
-            >
-                <g transform="matrix(1,0,0,1,-7035.31,-17905.5)">
-                    <g transform="matrix(1.92656,0,0,2.75239,4565.69,13878.5)">
-                        <g
-                            transform="matrix(0.987735,0,0,0.691374,-6.95473,-1191.46)"
-                        >
-                            <path
-                                id="logo-path"
-                                d="M1337.11,4040.89C1337.11,4040.89 1289.83,4040.89 1344.03,4040.89C1434.57,4040.89 1286.12,3863.31 1405.01,3863.31C1438.03,3863.31 1457.79,3892.88 1457.79,3920.96C1457.79,3979.44 1375.94,3985.26 1344.03,3972.61C1312.12,3959.96 1321.61,3922.19 1355.94,3922.19C1412.66,3922.19 1420.65,4040.89 1473.79,4040.89C1526.94,4040.89 1540.75,3912.11 1512.17,3912.11C1483.58,3912.11 1491.96,4040.89 1543.79,4040.89C1638.31,4040.89 1658.35,3928.09 1609.61,3928.09C1551.06,3928.09 1545.25,4040.86 1610.2,4040.86C1715.96,4040.86 1619.14,3852.71 1672.23,3852.71C1717.83,3852.71 1635.65,4040.89 1709.82,4040.89C1737.6,4040.89 1758.23,4021.36 1783,3992.34C1822.29,3946.31 1765.48,3908.93 1734.11,3936.29C1695.31,3970.12 1722.43,4040.89 1785.88,4040.89C1879.57,4040.89 1924.44,3912.11 1863.02,3912.11C1838.4,3912.11 1836.73,3951.4 1892.49,3951.4C1948.24,3951.4 1922.68,4040.89 1850.42,4040.89C1822.64,4040.89 1800.3,4018.9 1819.94,3999.26C1850.11,3969.08 1890.23,4041.52 1926.42,4040.86"
-                                style="
-                                    fill: none;
-                                    stroke: black;
-                                    stroke-width: 8px;
-                                "
-                            />
-                        </g>
-                    </g>
-                </g>
-            </svg>
-        </div>
-        <!--<svg
-            width="1322"
-            height="1533"
-            viewBox="0 0 1322 1533"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            id="logo-svg"
-            class="absolute bottom-0 opacity-0"
-        >
-            <path
-                id="logo-path"
-                d="M150.022 1530C139.641 1096.29 -80.3453 245.899 542.586 118.264C702.753 85.4464 934.577 95.6144 974.883 297.708C995.362 400.395 858.067 539.085 858.067 539.085L1226 1390.25"
-                stroke="#1E1E1E"
-                stroke-width="208"
-            />
-        </svg>-->
-
+        <!-- The p5.js canvas -->
         <div
             id="canvas-container"
-            class="relative w-full h-screen z-1 overflow-hidden"
+            class="absolute inset-0 w-full h-screen overflow-hidden z-20 pointer-events-none"
         >
             <script
                 type="module"
                 src="/src/interactiveRollerCoaster.js"
             ></script>
+        </div>
+
+        <!-- Icons that sit over the track -->
+
+        <!-- Hidden SVG logo path for demo animation -->
+        <div class="absolute inset-0 w-full h-full overflow-hidden z-0">
+            <svg
+                width="100%"
+                height="100%"
+                viewBox="0 0 3568 553"
+                version="1.1"
+                id="logo-svg"
+                class="absolute bottom-0 opacity-0"
+            >
+                <path
+                    id="logo-path"
+                    d="M1086.87,3988C1177.4,3988 1028.96,3810.43 1147.84,3810.43C1180.87,3810.43 1200.63,3840 1200.63,3868.08C1200.63,3926.56 1118.78,3932.38 1086.87,3919.72C1054.96,3907.07 1064.44,3869.3 1098.77,3869.3C1155.5,3869.3 1163.48,3988 1216.63,3988C1254.79,3988 1270.64,3968.48 1295.41,3939.46C1334.69,3893.42 1277.89,3856.04 1246.52,3883.4C1207.72,3917.24 1240.09,3988 1303.55,3988C1403.01,3988 1433.84,3875.21 1385.1,3875.21C1326.54,3875.21 1320.74,3987.98 1385.69,3987.98C1470.58,3987.98 1403.2,3875.21 1444.03,3875.21C1479.12,3875.21 1405.88,3988 1480.05,3988C1574.57,3988 1594.61,3875.21 1545.87,3875.21C1487.31,3875.21 1481.51,3987.98 1546.46,3987.98C1652.22,3987.98 1555.4,3799.83 1608.48,3799.83C1654.09,3799.83 1579.01,3988 1640.82,3988C1683.94,3988 1638.05,3899.39 1664.25,3899.39C1703.23,3899.39 1646.53,3988 1701.83,3988C1752.31,3988 1705.35,3899.42 1740.6,3899.42C1775.85,3899.42 1797.43,4074.44 1701.83,4074.44C1639.7,4074.44 1547.7,3987.17 1546.46,4036.11C1544.46,4114.56 1021.32,3878.29 1021.32,4178.48C1021.32,4205.94 1021.32,4167.81 1021.32,4254.86C1021.32,4295.34 940.286,4186.4 1048.95,4171.92C1177.36,4154.81 1146.96,4263.14 1089.19,4263.14C1037.27,4263.14 1018.07,4171.92 1133.3,4171.92C1207.47,4171.92 1198.21,4262.61 1252.42,4262.61C1342.95,4262.61 1194.51,4085.04 1313.39,4085.04C1346.42,4085.04 1366.18,4114.61 1366.18,4142.69C1366.18,4201.17 1284.33,4206.99 1252.42,4194.34C1220.51,4181.69 1230,4143.91 1264.32,4143.91C1321.05,4143.91 1329.03,4262.61 1382.18,4262.61C1435.32,4262.61 1449.14,4133.84 1420.55,4133.84C1391.96,4133.84 1400.35,4262.61 1452.18,4262.61C1546.69,4262.61 1566.74,4149.82 1517.99,4149.82C1459.44,4149.82 1453.64,4262.59 1518.58,4262.59C1624.35,4262.59 1527.53,4074.44 1580.61,4074.44C1626.21,4074.44 1544.03,4262.61 1618.2,4262.61C1645.98,4262.61 1666.61,4243.09 1691.38,4214.07C1730.67,4168.03 1673.87,4130.66 1642.5,4158.02C1603.7,4191.85 1630.81,4262.61 1694.27,4262.61C1786.46,4262.61 1796.34,4205.95 1787.88,4162.34C1779.84,4120.9 1798.56,4096.79 1840.01,4093.14C1872.9,4090.25 1892.79,4122.71 1892.79,4150.8C1892.79,4209.27 1825.9,4221.77 1820.33,4187.9C1815.91,4161.01 1856.72,4163.04 1851.72,4187.9C1847.21,4210.32 1817.69,4262.61 1851.72,4262.61C1904.86,4262.61 1928.83,4251.1 1928.83,4171.92C1928.83,3872.42 1644.37,3695.19 1557.94,3777C1450.08,3879.09 1274.86,3733.36 1098.77,3761.72C982.122,3780.5 998.48,3974.55 1064.15,3985.46"
+                />
+            </svg>
         </div>
     </body>
 </html>

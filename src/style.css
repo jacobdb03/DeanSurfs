@@ -16,8 +16,12 @@
     --font-coolvetica: "Coolvetica", sans-serif;
 }
 
+/** {
+    outline: red solid 1px;
+}*/
+
 body {
     margin: 0px;
     padding: 0px;
-    overflow-x: hidden;
+    overflow: hidden;
 }
