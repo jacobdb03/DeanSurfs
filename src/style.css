@@ -16,6 +16,13 @@
     --font-coolvetica: "Coolvetica", sans-serif;
 }
 
+#canvas-container,
+canvas {
+    touch-action: none !important;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 /** {
     outline: red solid 1px;
 }*/

@@ -7,7 +7,7 @@ const bgCol = ["#FE6533", "#FDC928", "#EC91FA", "#09A982"];
 const strokeCol = ["#FE6533", "#FDC928", "#EC91FA", "#09A982", "#D9D9D9"];
 let strokeSize = 32;
 const basePixelsPerFrame = 10;
-const demoDrawSpeed = 1;
+const demoDrawSpeed = 0.8;
 let pathScale = 1;
 
 let speed1 = basePixelsPerFrame;
@@ -293,7 +293,7 @@ function newBackground() {
 
 const coaster = (c) => {
   c.setup = () => {
-    strokeSize = window.innerWidth < 360 ? 5 : 30;
+    strokeSize = window.innerWidth < 768 ? 10 : 30;
     const container = document.getElementById("canvas-container");
 
     const canvas = c.createCanvas(
@@ -317,15 +317,25 @@ const coaster = (c) => {
     drawTrack(c);
   };
 
-  c.mouseDragged = () => {
+  function handleStartOrDrag(x, y) {
+    // If the coordinates are broken or zero, don't execute
+    if (x === 0 && y === 0) return;
+
     if (animPlay || !demoComplete) {
       resetAnimation();
       demoComplete = true;
     }
-    checkTrack(c);
-  };
 
-  c.mouseReleased = () => {
+    const last = pathArray[pathArray.length - 1];
+    if (last) {
+      const dx = x - last[0];
+      const dy = y - last[1];
+      if (Math.sqrt(dx * dx + dy * dy) < 5) return;
+    }
+    pathArray.push([x, y]);
+  }
+
+  function handleRelease() {
     if (pathArray.length > 1) {
       loopedPath = buildLoopedPath(pathArray, 60);
       buildArcLengths(loopedPath);
@@ -335,20 +345,49 @@ const coaster = (c) => {
       t2 = totalArcLength / 2;
       newBackground();
     }
+  }
+
+  c.mouseDragged = (event) => {
+    handleStartOrDrag(c.mouseX, c.mouseY);
+    return false; // Prevents default desktop behavior
   };
 
-  c.windowResized = () => {
-    const container = document.getElementById("canvas-container");
-    c.resizeCanvas(container.clientWidth, container.clientHeight);
-    strokeSize = window.innerWidth < 768 ? 15 : 30;
-
-    demoPoints = [];
-    demoDrawIndex = 0;
-    demoPath = [];
-    demoComplete = false;
-    resetAnimation();
-    loopedPath = [];
+  c.mouseReleased = () => {
+    handleRelease();
   };
+
+  /* ———— Mobile Touch Hooks ———— */
+
+  c.touchStarted = (event) => {
+    // Standardize mobile coordinates using p5's auto-mapping
+    handleStartOrDrag(c.mouseX, c.mouseY);
+
+    // Prevent the mobile browser from scrolling or bouncing the page
+    if (event && event.cancelable) {
+      event.preventDefault();
+    }
+    return false;
+  };
+
+  c.touchMoved = (event) => {
+    handleStartOrDrag(c.mouseX, c.mouseY);
+
+    if (event && event.cancelable) {
+      event.preventDefault();
+    }
+    return false;
+  };
+
+  c.touchEnded = (event) => {
+    handleRelease();
+
+    if (event && event.cancelable) {
+      event.preventDefault();
+    }
+    return false;
+  };
+
+  /* ———— Window Resize ———— */
 };
 
 window.addEventListener("load", () => {
