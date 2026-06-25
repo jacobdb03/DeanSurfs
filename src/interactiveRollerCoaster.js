@@ -3,11 +3,12 @@ import p5 from "p5";
 
 /* ———— Variable assets ———— */
 
-const bgCol = ["#FE6533", "#FDC928", "#EC91FA", "#09A982"];
-const strokeCol = ["#FE6533", "#FDC928", "#EC91FA", "#09A982", "#D9D9D9"];
+const bgCol = ["#00BAD9", "#1C003F", "#FF5E00", "#FFCB00", "#282223"];
+const strokeCol = ["#00BAD9", "#1C003F", "#FF5E00", "#FFCB00", "#FBF6F6"];
 let strokeSize = 32;
-const basePixelsPerFrame = 10;
-const demoDrawSpeed = 0.8;
+let basePixelsPerFrame = 14;
+
+const demoDrawSpeed = 1.4;
 let pathScale = 1;
 
 let speed1 = basePixelsPerFrame;
@@ -21,8 +22,8 @@ let loopedPath = [];
 let t1 = 0;
 let t2 = 0;
 
-let bgChoice;
-let strokeChoice;
+let pullBgChoice;
+let pullStrokeChoice;
 
 /* ———— Demo variables ———— */
 
@@ -30,6 +31,7 @@ let demoPoints = [];
 let demoDrawIndex = 0;
 let demoPath = [];
 let demoComplete = false;
+let demoDelayCounter = 0; // Tracks the initial 2-second path delay
 
 /* ———— Helper functions ———— */
 
@@ -160,6 +162,18 @@ function sampleLogoPath(canvasWidth, canvasHeight) {
 
 function update(c) {
   if (!demoComplete) {
+    demoDelayCounter++;
+
+    // Trigger smooth CSS fade-out at ~3 seconds (180 frames)
+    if (demoDelayCounter === 180) {
+      fadeTextContainer();
+    }
+
+    // Hold drawing path animation for 2 seconds (120 frames)
+    if (demoDelayCounter < 120) {
+      return;
+    }
+
     demoDrawIndex = Math.min(
       demoDrawIndex + demoDrawSpeed,
       demoPoints.length - 1,
@@ -213,7 +227,7 @@ function drawTrack(c) {
   }
 
   ctx.lineTo(...points[points.length - 1]);
-  ctx.strokeStyle = strokeChoice;
+  ctx.strokeStyle = pullStrokeChoice;
   ctx.lineWidth = strokeSize;
   ctx.lineCap = ctx.lineJoin = "butt";
   ctx.stroke();
@@ -223,7 +237,7 @@ function drawTrack(c) {
 
 function drawCart(c, x, y) {
   const size = strokeSize * 2;
-  c.fill(strokeChoice);
+  c.fill(pullStrokeChoice);
   c.noStroke();
   c.circle(x, y, size);
 }
@@ -242,10 +256,10 @@ function moveCart(t, speed) {
 
   // Momentum based on vertical travel
   const verticalTravel = ay - by;
-  if (verticalTravel > 2) speed += 1.5;
-  else if (verticalTravel < -2) speed -= 0.01;
+  if (verticalTravel > 2) speed += 2.5;
+  else if (verticalTravel < -2) speed -= 0.02;
   else speed += (basePixelsPerFrame - speed) * 0.5;
-  speed = Math.max(2, Math.min(speed, 15));
+  speed = Math.max(2, Math.min(speed, window.innerWidth < 768 ? 10 : 30));
   t = (t + speed) % totalArcLength;
 
   const x = rawX + (dy / len) * strokeSize * 1.5;
@@ -274,6 +288,7 @@ function resetAnimation() {
   pathArray = [];
   speed1 = basePixelsPerFrame;
   speed2 = basePixelsPerFrame;
+  demoDelayCounter = 180; // Bypass delay sequences if creating a new drawing
 }
 
 function randomChoice(arr) {
@@ -281,19 +296,72 @@ function randomChoice(arr) {
 }
 
 function newBackground() {
-  bgChoice = randomChoice(bgCol);
-  strokeChoice = randomChoice(strokeCol);
-  while (strokeChoice === bgChoice) {
-    strokeChoice = randomChoice(strokeCol);
+  const navElements = document.getElementsByClassName("cus-navElement");
+  const textElements = document.getElementsByClassName("cus-textElement");
+
+  pullBgChoice = randomChoice(bgCol);
+  pullStrokeChoice = randomChoice(strokeCol);
+
+  while (
+    pullStrokeChoice === pullBgChoice ||
+    (pullStrokeChoice === bgCol[1] && pullBgChoice === bgCol[4])
+  ) {
+    pullStrokeChoice = randomChoice(strokeCol);
   }
-  document.getElementById("bg-layer").style.backgroundColor = bgChoice;
+
+  console.log("Background:", pullBgChoice, "Icon/Stroke:", pullStrokeChoice);
+
+  const tailwindFills = ["fill-[#282223]", "fill-[#FBF6F6]"];
+  const tailwindTexts = strokeCol.map((color) => `text-[${color}]`);
+
+  // Force custom navigation elements to match track stroke choice
+  for (let i = 0; i < navElements.length; i++) {
+    tailwindFills.forEach((cls) => navElements[i].classList.remove(cls));
+    navElements[i].style.fill = pullStrokeChoice;
+  }
+
+  // Force heading text elements to directly match track stroke choice
+  for (let i = 0; i < textElements.length; i++) {
+    tailwindTexts.forEach((cls) => textElements[i].classList.remove(cls));
+    textElements[i].style.color = pullStrokeChoice;
+  }
+
+  const bgLayer = document.getElementById("bg-layer");
+  if (bgLayer) bgLayer.style.backgroundColor = pullBgChoice;
+}
+
+/* ———— Dynamic Visibility Functions ———— */
+
+function fadeTextContainer() {
+  const centerTextWrapper = document.querySelector(
+    ".pointer-events-none.fixed, .pointer-events-none.absolute",
+  );
+  if (centerTextWrapper) {
+    // Inject transition properties dynamically for a 0.5s fade out
+    centerTextWrapper.style.transition = "opacity 0.5s ease-out";
+    centerTextWrapper.style.opacity = "0";
+
+    // Cleanly remove from pointer calculations entirely after fade finishes
+    setTimeout(() => {
+      centerTextWrapper.style.display = "none";
+    }, 500);
+  }
+}
+
+function hideTextContainerImmediate() {
+  const centerTextWrapper = document.querySelector(
+    ".pointer-events-none.fixed, .pointer-events-none.absolute",
+  );
+  if (centerTextWrapper) {
+    centerTextWrapper.style.display = "none";
+  }
 }
 
 /* ———— The p5 Logic ———— */
 
 const coaster = (c) => {
   c.setup = () => {
-    strokeSize = window.innerWidth < 768 ? 10 : 30;
+    strokeSize = window.innerWidth < 768 ? 20 : 30;
     const container = document.getElementById("canvas-container");
 
     const canvas = c.createCanvas(
@@ -318,8 +386,10 @@ const coaster = (c) => {
   };
 
   function handleStartOrDrag(x, y) {
-    // If the coordinates are broken or zero, don't execute
     if (x === 0 && y === 0) return;
+
+    // Immediately close text block if user draws before automatic fade triggers
+    hideTextContainerImmediate();
 
     if (animPlay || !demoComplete) {
       resetAnimation();
@@ -349,7 +419,7 @@ const coaster = (c) => {
 
   c.mouseDragged = (event) => {
     handleStartOrDrag(c.mouseX, c.mouseY);
-    return false; // Prevents default desktop behavior
+    return false;
   };
 
   c.mouseReleased = () => {
@@ -359,10 +429,7 @@ const coaster = (c) => {
   /* ———— Mobile Touch Hooks ———— */
 
   c.touchStarted = (event) => {
-    // Standardize mobile coordinates using p5's auto-mapping
     handleStartOrDrag(c.mouseX, c.mouseY);
-
-    // Prevent the mobile browser from scrolling or bouncing the page
     if (event && event.cancelable) {
       event.preventDefault();
     }
@@ -371,7 +438,6 @@ const coaster = (c) => {
 
   c.touchMoved = (event) => {
     handleStartOrDrag(c.mouseX, c.mouseY);
-
     if (event && event.cancelable) {
       event.preventDefault();
     }
@@ -380,16 +446,13 @@ const coaster = (c) => {
 
   c.touchEnded = (event) => {
     handleRelease();
-
     if (event && event.cancelable) {
       event.preventDefault();
     }
     return false;
   };
-
-  /* ———— Window Resize ———— */
 };
 
-window.addEventListener("load", () => {
+window.addEventListener("DOMContentLoaded", () => {
   new p5(coaster);
 });
